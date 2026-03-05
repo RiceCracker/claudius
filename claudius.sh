@@ -47,7 +47,7 @@ cleanup() {
   docker rm -f "$ENVOY" 2>/dev/null || true
   docker network rm "$NET" 2>/dev/null || true
   [ -n "$XAUTH_FILE" ] && rm -f "$XAUTH_FILE"
-  [ -n "$ENVOY_CONF_FILE" ] && rm -f "$ENVOY_CONF_FILE"
+  [ -n "$ENVOY_CONF_FILE" ] && rm -f "$ENVOY_CONF_FILE"; true
 }
 trap cleanup EXIT
 
@@ -92,6 +92,8 @@ fi
 # ── Envoy proxy ────────────────────────────────────────────────────────────────
 # shellcheck source=docker/envoy/start.sh
 . "$CLAUDIUS_DIR/docker/envoy/start.sh"
+
+
 EXTRA_ARGS+=(
   -e "http_proxy=http://$ENVOY_IP:3128"
   -e "https_proxy=http://$ENVOY_IP:3128"

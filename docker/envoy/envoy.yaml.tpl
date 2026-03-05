@@ -8,6 +8,14 @@ static_resources:
         typed_config:
           "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
           stat_prefix: ingress_http
+          access_log:
+          - name: envoy.access_loggers.file
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog
+              path: /dev/stdout
+              log_format:
+                text_format_source:
+                  inline_string: "[%START_TIME%] %REQ(:METHOD)% %REQ(:AUTHORITY)% %RESPONSE_CODE% %BYTES_SENT%B\n"
           upgrade_configs:
           - upgrade_type: CONNECT
           route_config:
