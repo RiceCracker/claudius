@@ -1,0 +1,29 @@
+# claudius – Imperial Rome color scheme
+
+"$schema" = 'https://starship.rs/config-schema.json'
+
+format = "$username$hostname$directory\n$character"
+
+[username]
+show_always = true
+style_user  = "bold #d4af37"
+style_root  = "bold #d4af37"
+format      = "[$user]($style)"
+
+[hostname]
+ssh_only = false
+style    = "bold #d4af37"
+format   = "[@$hostname]($style): "
+
+[directory]
+style             = "bold #9b59b6"
+truncation_length = 4
+truncation_symbol = "…/"
+format            = "[$path]($style)"
+
+[character]
+success_symbol = "[❯](bold #6b8e23)"
+error_symbol   = "[❯](bold #c0392b)"
+
+[container]
+disabled = true
