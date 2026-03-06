@@ -27,6 +27,11 @@ generate_envoy_conf() {
     fi
   done
 
+  # Always allow the Docker socket proxy through Envoy (hostname-based, not IP)
+  if [ -n "${PROXY:-}" ]; then
+    exact_entries+=("[\"$PROXY:2375\"] = true")
+  fi
+
   while IFS= read -r line; do
     case "$line" in
       "##EXACT##")          [ ${#exact_entries[@]}         -gt 0 ] && printf '                    %s,\n' "${exact_entries[@]}" ;;

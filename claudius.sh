@@ -111,6 +111,9 @@ if [ "$SUDO" = "1" ]; then
 fi
 
 TTY_FLAG="-i"; [ -t 0 ] && [ -t 1 ] && TTY_FLAG="-it"
+# No --security-opt seccomp=...: Docker's default seccomp profile applies intentionally.
+# It blocks ~44 syscalls (kexec_load, create_module, AF_PACKET sockets, etc.).
+# A custom profile would add maintenance cost without clear security benefit here.
 docker run $TTY_FLAG --rm \
   --name "claudius-$$" \
   --cap-drop ALL \
@@ -135,7 +138,6 @@ docker run $TTY_FLAG --rm \
   -e HOST_GID="$(id -g)" \
   -e HOST_USER="$host_user" \
   -e DOCKER_HOST="tcp://$PROXY:2375" \
-  -e DOCKER_PROXY_IP="$PROXY_IP" \
   -e CLAUDIUS_DNS="$DNS" \
   -e TERM=xterm-256color \
   -e COLORTERM=truecolor \

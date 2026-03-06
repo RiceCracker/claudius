@@ -65,9 +65,6 @@ fi
 fw_both -A OUTPUT -o lo -j ACCEPT
 fw_both -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 
-# Docker socket proxy (read-only, container-internal)
-[ -n "${DOCKER_PROXY_IP:-}" ] && iptables -A OUTPUT -d "$DOCKER_PROXY_IP" -p tcp --dport 2375 -j ACCEPT
-
 # DNS – always direct to fixed resolvers
 for resolver in ${CLAUDIUS_DNS:-1.1.1.1 1.0.0.1 8.8.8.8 8.8.4.4}; do
   if echo "$resolver" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
@@ -90,8 +87,6 @@ iptables -A OUTPUT -p icmp -j ACCEPT
 
 # ── TCP routing – always via Envoy ─────────────────────────────────────────────
 iptables -t nat -A OUTPUT -d "$ENVOY_IP"                           -j RETURN
-[ -n "${DOCKER_PROXY_IP:-}" ] && \
-  iptables -t nat -A OUTPUT -d "$DOCKER_PROXY_IP"                  -j RETURN
 iptables -t nat -A OUTPUT -p tcp --dport 53                        -j RETURN
 [ "${CLAUDIUS_SSH:-0}" = "1" ] && \
   iptables -t nat -A OUTPUT -p tcp --dport 22                      -j RETURN
