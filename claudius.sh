@@ -58,7 +58,7 @@ cleanup() {
   [ -n "$XAUTH_FILE" ] && rm -f "$XAUTH_FILE"
   [ -n "$ENVOY_CONF_FILE" ] && rm -f "$ENVOY_CONF_FILE"; true
 }
-trap cleanup EXIT
+trap cleanup EXIT INT TERM
 
 # Isolated network so proxy and claudius can talk
 docker network create "$NET" >/dev/null

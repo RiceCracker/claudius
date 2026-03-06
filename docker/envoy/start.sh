@@ -9,6 +9,7 @@ generate_envoy_conf() {
   local exact_entries=() wildcard_entries=()
   local http_exact_entries=() http_wildcard_entries=()
   local allow_all_http="false"
+  set -f
   for entry in $ALLOW; do
     case "$entry" in */tcp) ;; *) continue ;; esac
     local h="${entry%/tcp}"; local p="${h##*:}"; h="${h%:*}"
@@ -26,6 +27,7 @@ generate_envoy_conf() {
       esac
     fi
   done
+  set +f
 
   # Always allow the Docker socket proxy through Envoy (hostname-based, not IP)
   if [ -n "${PROXY:-}" ]; then

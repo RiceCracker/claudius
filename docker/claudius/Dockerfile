@@ -28,6 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     netcat-openbsd \
     python3 \
     python3-pip \
+    python3-pylsp \
     sqlite3 \
     strace \
     sudo \
@@ -60,7 +61,7 @@ RUN export PATH="$HOME/.local/bin:$PATH" && \
         vscode-langservers-extracted \
         yaml-language-server \
         sql-language-server && \
-    chmod -R 777 /opt/npm
+    chmod -R 755 /opt/npm
 
 # Starship prompt
 RUN curl -sS https://starship.rs/install.sh | sh -s -- --yes
@@ -90,6 +91,7 @@ ENV LC_ALL=C.UTF-8
 ENV COLORTERM=truecolor
 ENV DISABLE_AUTOUPDATER=1
 ENV NPM_CONFIG_PREFIX=/opt/npm
+ENV PATH=/opt/npm/bin:$PATH
 ENV NODE_OPTIONS=--use-env-proxy
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
