@@ -66,7 +66,7 @@ CLAUDIUS_MEMORY=8g CLAUDIUS_CPUS=8 claudius
 ```
 
 | Variable | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `CLAUDIUS_MEMORY` | `4g` | Container memory limit |
 | `CLAUDIUS_CPUS` | `4` | Container CPU limit |
 | `CLAUDIUS_DNS` | `1.1.1.1 1.0.0.1 8.8.8.8 8.8.4.4` | DNS resolvers (space-separated; IPv6 supported) |
@@ -76,12 +76,12 @@ CLAUDIUS_MEMORY=8g CLAUDIUS_CPUS=8 claudius
 | `CLAUDIUS_CLIPBOARD` | `1` | `0` = disable clipboard forwarding (Wayland/X11) |
 | `CLAUDIUS_DOCKER_WRITE` | `0` | `1` = enable docker run/build/stop (default: inspect only) |
 | `CLAUDIUS_SUDO` | `0` | `1` = enable sudo for package managers |
-| `CLAUDIUS_SUDO_CMDS` | `apt apt-get pip pip3 npm tcpdump` | Commands allowed via sudo when `CLAUDIUS_SUDO=1` |
+| `CLAUDIUS_SUDO_CMDS` | `apt apt-get pip pip3 npm` | Commands allowed via sudo when `CLAUDIUS_SUDO=1` |
 
 ## What's inside
 
-| | |
-|---|---|
+| Component | |
+| --- | --- |
 | Base image | `node:20-bookworm-slim` |
 | Claude Code | native installer (`claude.ai/install.sh`) |
 | Shell | bash + [Starship](https://starship.rs) prompt (Imperial Rome theme) |
@@ -94,7 +94,7 @@ CLAUDIUS_MEMORY=8g CLAUDIUS_CPUS=8 claudius
 ### Measures
 
 | Measure | Detail |
-|---|---|
+| --- | --- |
 | Isolated filesystem | Project dir, `~/.claude/`, `~/.claude.json` — no other host paths |
 | Network firewall | iptables OUTPUT defaults to DROP; all TCP goes through Envoy; only `CLAUDIUS_ALLOW` entries pass |
 | DNS restriction | DNS only reaches resolvers listed in `CLAUDIUS_DNS` |
@@ -150,7 +150,7 @@ iptables rules apply to the OUTPUT chain only (egress filtering). The container 
 All outbound TCP — including to the Docker socket proxy — routes through Envoy. The Docker proxy is reachable by hostname only; direct IP connections are intercepted by Envoy and rejected.
 
 | Protocol | Port | Condition |
-|---|---|---|
+| --- | --- | --- |
 | ICMP / ICMPv6 | — | always |
 | UDP/TCP | 53 | DNS to configured resolvers only |
 | TCP | 22 | only when `CLAUDIUS_SSH=1` |
@@ -182,7 +182,7 @@ Port 80 uses Envoy's HTTP forward proxy mode; everything else uses CONNECT tunne
 ### Mounts
 
 | Host path | Container path | Mode |
-|---|---|---|
+| --- | --- | --- |
 | `~/.claude/` | `/home/$USER/.claude/` | rw |
 | `~/.claude.json` | `/home/$USER/.claude.json` | rw |
 | `$(pwd)` | `/home/$USER/$(basename pwd)` | rw |
@@ -219,7 +219,7 @@ docker ps / logs / images / inspect / info / network ls / volume ls
 - See or signal host processes — PID namespace is isolated
 - Use raw ethernet sockets — `AF_PACKET` blocked by seccomp even with `CAP_NET_RAW`
 - Load kernel modules — `CAP_SYS_MODULE` not in capability set
-- Access the Docker socket directly — only via the filtered HAProxy proxy
+- Access the Docker socket directly — only via the filtered [docker-socket-proxy](https://github.com/Tecnativa/docker-socket-proxy)
 - Escalate privileges beyond what `CLAUDIUS_SUDO=1` permits (capabilities remain bounded)
 - Run Docker write operations unless `CLAUDIUS_DOCKER_WRITE=1`
 
@@ -249,7 +249,7 @@ claudius is built to contain mistakes, not to stop a determined adversary. Accid
 
 **`CLAUDIUS_DOCKER_WRITE=1`:** Enables `docker run`, `build`, and `stop` via the socket proxy. Claude can launch a privileged container that mounts the host root filesystem and escape the sandbox entirely. Treat this as host-level access.
 
-**Docker socket proxy:** The socket is never mounted into the container. A filtered HAProxy proxy exposes only allowed API endpoints. The proxy is reachable by hostname through Envoy only — direct IP access is blocked. This prevents bypassing the method filter by connecting to the proxy IP with the system proxy disabled.
+**Docker socket proxy:** The socket is never mounted into the container. A [docker-socket-proxy](https://github.com/Tecnativa/docker-socket-proxy) exposes only allowed API endpoints. The proxy is reachable by hostname through Envoy only — direct IP access is blocked. This prevents bypassing the method filter by connecting to the proxy IP with the system proxy disabled.
 
 **`--dangerously-skip-permissions`:** Suppresses all permission prompts. The firewall still applies, but Claude will act without asking. Useful for automated runs; know what you're enabling.
 
