@@ -82,8 +82,9 @@ CLAUDIUS_MEMORY=8g CLAUDIUS_CPUS=8 claudius
 
 | Component | |
 | --- | --- |
-| Base image | `node:20-bookworm-slim` |
+| Base image | `node:22-bookworm-slim` |
 | Claude Code | native installer (`claude.ai/install.sh`) |
+| Gemini MCP | [`@rlabs-inc/gemini-mcp`](https://github.com/RLabs-Inc/gemini-mcp) — 30+ tools: image/video generation, deep research, code execution, and more |
 | Shell | bash + [Starship](https://starship.rs) prompt (Imperial Rome theme) |
 | Packages | git, curl, wget, vim, less, ping, mtr, jq, make, python3, pip3, sqlite3, sudo, tree, unzip, netcat, lsof, strace, docker CLI, gnupg, wl-clipboard, xclip |
 

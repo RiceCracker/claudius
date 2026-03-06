@@ -1,6 +1,6 @@
 FROM docker:cli AS docker-cli
 
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 
 LABEL org.opencontainers.image.title="claude-box"
 LABEL org.opencontainers.image.description="Sandboxed Claude Code environment"
@@ -49,7 +49,10 @@ RUN export PATH="$HOME/.local/bin:$PATH" && \
     ln -sf "$(readlink /root/.local/bin/claude | sed 's|/root/.local/share/claude|/usr/local/share/claude|')" \
        /usr/local/bin/claude && \
     npm uninstall -g @anthropic-ai/claude-code 2>/dev/null || true && \
-    npm config set prefix /opt/npm
+    npm config set prefix /opt/npm && \
+    mkdir -p /opt/npm/lib /opt/npm/bin && \
+    npm install -g @rlabs-inc/gemini-mcp && \
+    chmod -R 777 /opt/npm
 
 # Starship prompt
 RUN curl -sS https://starship.rs/install.sh | sh -s -- --yes
@@ -79,5 +82,6 @@ ENV LC_ALL=C.UTF-8
 ENV COLORTERM=truecolor
 ENV DISABLE_AUTOUPDATER=1
 ENV NPM_CONFIG_PREFIX=/opt/npm
+ENV NODE_OPTIONS=--use-env-proxy
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
