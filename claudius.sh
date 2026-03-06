@@ -6,9 +6,22 @@ set -e
 
 CLAUDIUS_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 
-if ! docker image inspect claudius &>/dev/null; then
-  echo "📜 Image 'claudius' not found – building (this takes ~2 min once)..."
-  docker build -t claudius -f "$CLAUDIUS_DIR/docker/claudius/Dockerfile" "$CLAUDIUS_DIR"
+if [ -f "$CLAUDIUS_DIR/.env" ]; then
+  # shellcheck source=/dev/null
+  . "$CLAUDIUS_DIR/.env"
+fi
+
+CLAUDIUS_IMAGE="${CLAUDIUS_IMAGE:-claudius}"
+
+if ! docker image inspect "$CLAUDIUS_IMAGE" &>/dev/null; then
+  if [ "$CLAUDIUS_IMAGE" = "claudius" ]; then
+    echo "📜 Image 'claudius' not found – building (this takes ~2 min once)..."
+    docker build -t claudius -f "$CLAUDIUS_DIR/docker/claudius/Dockerfile" "$CLAUDIUS_DIR"
+  else
+    echo "❌ Image '$CLAUDIUS_IMAGE' not found. Build it first:"
+    echo "   docker build -t $CLAUDIUS_IMAGE -f /path/to/your/Dockerfile ."
+    exit 1
+  fi
 fi
 
 if [ -n "$1" ] && [ -d "$1" ]; then
@@ -16,11 +29,6 @@ if [ -n "$1" ] && [ -d "$1" ]; then
   shift
 else
   PROJECT_DIR="$(pwd)"
-fi
-
-if [ -f "$CLAUDIUS_DIR/.env" ]; then
-  # shellcheck source=/dev/null
-  . "$CLAUDIUS_DIR/.env"
 fi
 
 host_user="$(id -un)"
@@ -37,6 +45,7 @@ GPG="${CLAUDIUS_GPG:-}"
 ALLOW="*.anthropic.com:443/tcp ${CLAUDIUS_ALLOW:-}"
 CLIPBOARD="${CLAUDIUS_CLIPBOARD:-1}"
 SUDO="${CLAUDIUS_SUDO:-0}"
+USER_INIT="${CLAUDIUS_USER_INIT:-}"
 ENVOY="claudius-proxy-$$"
 ENVOY_CONF_FILE=""
 ENVOY_IP=""
@@ -102,6 +111,16 @@ EXTRA_ARGS+=(
   -e "ENVOY_IP=$ENVOY_IP"
 )
 
+# ── user init hook ────────────────────────────────────────────────────────────
+if [ -n "$USER_INIT" ]; then
+  USER_INIT="$(cd "$(dirname "$USER_INIT")" && pwd)/$(basename "$USER_INIT")"
+  if [ ! -f "$USER_INIT" ]; then
+    echo "❌ CLAUDIUS_USER_INIT: file not found: $USER_INIT"
+    exit 1
+  fi
+  EXTRA_ARGS+=(-v "$USER_INIT:/etc/claudius/user-init.sh:ro")
+fi
+
 # ── sudo opt-in ───────────────────────────────────────────────────────────────
 if [ "$SUDO" = "1" ]; then
   EXTRA_ARGS+=(
@@ -143,4 +162,4 @@ docker run $TTY_FLAG --rm \
   -e TERM=xterm-256color \
   -e COLORTERM=truecolor \
   "${EXTRA_ARGS[@]}" \
-  claudius "$@"
+  "$CLAUDIUS_IMAGE" "$@"

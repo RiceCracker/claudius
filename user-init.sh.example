@@ -1,0 +1,21 @@
+#!/bin/bash
+# user-init.sh – runs as root before Claude starts on every container launch.
+#
+# Good for: lightweight per-start configuration (dotfiles, git config, env tweaks).
+# Not for:  installing packages — use a custom Dockerfile instead (see docker/claudius/Dockerfile.*.example).
+#
+# Mount into container:
+#   -v "$PWD/user-init.sh:/etc/claudius/user-init.sh:ro"
+#
+# To export PATH additions or env vars to Claude, write to /etc/claudius/user-env.sh:
+#   echo 'export MY_VAR=value' >> /etc/claudius/user-env.sh
+# The entrypoint sources that file before the privilege drop, so Claude inherits it.
+
+set -e
+
+# Example: git identity (write directly to the user's gitconfig, not root's)
+git config --file "/home/${HOST_USER}/.gitconfig" user.email "me@example.com"
+git config --file "/home/${HOST_USER}/.gitconfig" user.name "My Name"
+
+# Example: custom aliases in the shell after ctrl+c
+echo "alias ll='ls -lah --color=auto'" >> "/home/${HOST_USER}/.bashrc"

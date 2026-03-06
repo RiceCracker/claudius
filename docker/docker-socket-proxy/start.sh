@@ -15,6 +15,6 @@ docker run -d --rm \
   -e VOLUMES=1 \
   -e VERSION=1 \
   "${DOCKER_WRITE_ARGS[@]}" \
-  tecnativa/docker-socket-proxy >/dev/null
+  tecnativa/docker-socket-proxy:v0.4.2 >/dev/null
 
 PROXY_IP=$(docker inspect -f "{{(index .NetworkSettings.Networks \"$NET\").IPAddress}}" "$PROXY")

@@ -49,7 +49,7 @@ start_envoy_sidecar() {
     --name "$ENVOY" \
     --network "$NET" \
     -v "$ENVOY_CONF_FILE:/etc/envoy/envoy.yaml:ro" \
-    envoyproxy/envoy-distroless:v1.32-latest \
+    envoyproxy/envoy-distroless:v1.32.9 \
     -c /etc/envoy/envoy.yaml >/dev/null
   ENVOY_IP=$(docker inspect -f "{{(index .NetworkSettings.Networks \"$NET\").IPAddress}}" "$ENVOY")
 }

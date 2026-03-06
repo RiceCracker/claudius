@@ -1,0 +1,25 @@
+# Example: extend claudius with Rust + rust-analyzer
+#
+# Build (from repo root):
+#   docker build -t claudius-rust -f docker/claudius/Dockerfile.rust.example .
+#
+# Use:
+#   CLAUDIUS_IMAGE=claudius-rust claudius ~/my-rust-project
+
+FROM claudius
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install rustup to system-wide paths so the non-root container user can use it
+ENV RUSTUP_HOME=/usr/local/rustup
+ENV CARGO_HOME=/usr/local/cargo
+ENV PATH="/usr/local/cargo/bin:$PATH"
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+    | sh -s -- -y --no-modify-path --default-toolchain stable && \
+    rustup component add rust-analyzer && \
+    chmod -R a+rwX /usr/local/rustup /usr/local/cargo

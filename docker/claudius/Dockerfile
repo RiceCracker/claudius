@@ -51,7 +51,15 @@ RUN export PATH="$HOME/.local/bin:$PATH" && \
     npm uninstall -g @anthropic-ai/claude-code 2>/dev/null || true && \
     npm config set prefix /opt/npm && \
     mkdir -p /opt/npm/lib /opt/npm/bin && \
-    npm install -g @rlabs-inc/gemini-mcp && \
+    npm install -g \
+        @rlabs-inc/gemini-mcp \
+        pyright \
+        typescript \
+        typescript-language-server \
+        bash-language-server \
+        vscode-langservers-extracted \
+        yaml-language-server \
+        sql-language-server && \
     chmod -R 777 /opt/npm
 
 # Starship prompt
@@ -70,7 +78,7 @@ WORKDIR /workspace
 
 COPY docker/claudius/init-firewall.sh /usr/local/bin/init-firewall.sh
 COPY docker/claudius/entrypoint.sh    /usr/local/bin/entrypoint.sh
-RUN mkdir -p /etc/claude-code
+RUN mkdir -p /etc/claude-code /etc/claudius
 COPY CLAUDE.md /etc/claude-code/CLAUDE.md
 RUN chmod 444 /etc/claude-code/CLAUDE.md && \
     chmod +x /usr/local/bin/init-firewall.sh /usr/local/bin/entrypoint.sh && \

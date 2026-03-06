@@ -87,6 +87,22 @@ _any_hint=0
 [ -n "${DISPLAY:-}" ] && { echo "📜 Clipboard forwarded (X11)"; _any_hint=1; }
 [ "${CLAUDIUS_SUDO:-0}" = "1" ] && { echo "⚠️ sudo enabled (scope: ${CLAUDIUS_SUDO_CMDS:-apt apt-get pip pip3 npm})"; _any_hint=1; }
 [ "$_any_hint" = "1" ] && echo ""
+
+# ── User init hook ────────────────────────────────────────────────────────────
+# Mount a custom script at /etc/claudius/user-init.sh to run setup as root
+# before the privilege drop (e.g. apt install, npm install -g, go install).
+if [ -f /etc/claudius/user-init.sh ]; then
+  echo "🔧 Running user init..."
+  bash /etc/claudius/user-init.sh
+  # user-init.sh may write /etc/claudius/user-env.sh to export PATH additions
+  # and other variables that Claude and the shell should inherit.
+  if [ -f /etc/claudius/user-env.sh ]; then
+    # shellcheck source=/dev/null
+    . /etc/claudius/user-env.sh
+  fi
+  echo ""
+fi
+
 if [ -n "${DOCKER_HOST:-}" ]; then
   _docker_cmds="ps | logs | images | inspect | info | network ls | volume ls"
   [ "${DOCKER_WRITE:-}" = "1" ] && _docker_cmds="$_docker_cmds | run | build | stop"

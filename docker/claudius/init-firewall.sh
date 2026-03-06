@@ -11,15 +11,16 @@ fw_both() { iptables "$@"; [ "$IPV6" = "1" ] && ip6tables "$@"; }
 fw_line() { if [ "${CLAUDIUS_FIREWALL_VERBOSE:-0}" = "1" ]; then printf "   →  %-20s – %s\n" "$1" "$2"; fi; }
 
 parse_allow_entry() {
-  # Sets proto, host, port as globals. Returns 1 and skips if proto is missing.
+  # Sets proto, host, port as globals. Returns 1 and skips non-entries silently.
   local _entry="$1"
   case "$_entry" in
-    */udp) proto="udp"; _entry="${_entry%/udp}" ;;
-    */tcp) proto="tcp"; _entry="${_entry%/tcp}" ;;
-    *)
+    *:*/tcp) proto="tcp"; _entry="${_entry%/tcp}" ;;
+    *:*/udp) proto="udp"; _entry="${_entry%/udp}" ;;
+    *:*)
       echo "   ⚠  '$_entry': missing /tcp or /udp – skipped"
       proto="" host="" port=""; return 1
       ;;
+    *) proto="" host="" port=""; return 1 ;;  # bare word or comment token – skip silently
   esac
   host="${_entry%:*}"
   port="${_entry##*:}"
@@ -98,9 +99,9 @@ if [ "${CLAUDIUS_FIREWALL_VERBOSE:-0}" = "1" ]; then
   fw_line "icmp/icmpv6" "open"
   fw_line "udp+tcp/53  (DNS)" "${CLAUDIUS_DNS:-1.1.1.1 1.0.0.1 8.8.8.8 8.8.4.4}"
   [ "${CLAUDIUS_SSH:-0}" = "1" ] && fw_line "tcp/22  (SSH)" "open"
-  fw_line "Envoy  (tcp)" "$ENVOY_IP:3128"
+  fw_line "envoy  (tcp)" "$ENVOY_IP:3128"
   for entry in ${CLAUDIUS_ALLOW:-}; do
-    case "$entry" in */tcp) printf "   →    %s\n" "${entry%/tcp}" ;; esac
+    case "$entry" in */tcp) printf "   →    %s\n" "$entry" ;; esac
   done
 fi
 

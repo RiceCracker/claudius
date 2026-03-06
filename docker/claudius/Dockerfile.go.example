@@ -1,0 +1,25 @@
+# Example: extend claudius with Go runtime + gopls (Go language server)
+#
+# Build (from repo root):
+#   docker build -t claudius-go -f docker/claudius/Dockerfile.go.example .
+#
+# Use:
+#   CLAUDIUS_IMAGE=claudius-go claudius ~/my-go-project
+
+FROM golang:1.24-bookworm AS go-toolchain
+
+FROM claudius
+
+COPY --from=go-toolchain /usr/local/go /usr/local/go
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV GOPATH=/usr/local/gopath
+ENV GOCACHE=/usr/local/gocache
+ENV PATH="/usr/local/go/bin:/usr/local/gopath/bin:$PATH"
+
+RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" "$GOCACHE" && \
+    go install golang.org/x/tools/gopls@latest && \
+    chmod -R 777 "$GOPATH" "$GOCACHE"
