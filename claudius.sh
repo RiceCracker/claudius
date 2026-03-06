@@ -139,6 +139,7 @@ docker run $TTY_FLAG --rm \
   -e HOST_USER="$host_user" \
   -e DOCKER_HOST="tcp://$PROXY:2375" \
   -e CLAUDIUS_DNS="$DNS" \
+  -e CLAUDIUS_FIREWALL_VERBOSE="${CLAUDIUS_FIREWALL_VERBOSE:-0}" \
   -e TERM=xterm-256color \
   -e COLORTERM=truecolor \
   "${EXTRA_ARGS[@]}" \

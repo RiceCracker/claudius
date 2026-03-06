@@ -8,7 +8,7 @@ set -euo pipefail
 
 fw_both() { iptables "$@"; [ "$IPV6" = "1" ] && ip6tables "$@"; }
 
-fw_line() { printf "   →  %-20s – %s\n" "$1" "$2"; }
+fw_line() { if [ "${CLAUDIUS_FIREWALL_VERBOSE:-0}" = "1" ]; then printf "   →  %-20s – %s\n" "$1" "$2"; fi; }
 
 parse_allow_entry() {
   # Sets proto, host, port as globals. Returns 1 and skips if proto is missing.
@@ -41,11 +41,11 @@ add_udp_rule() {
   fi
   for ip in $ips4; do
     iptables  -A OUTPUT -d "$ip" -p udp --dport "$port" -j ACCEPT
-    printf "   →    %-20s – %s\n" "$host:$port/udp" "$ip"
+    if [ "${CLAUDIUS_FIREWALL_VERBOSE:-0}" = "1" ]; then printf "   →    %-20s – %s\n" "$host:$port/udp" "$ip"; fi
   done
   [ "$IPV6" = "1" ] && for ip in $ips6; do
     ip6tables -A OUTPUT -d "$ip" -p udp --dport "$port" -j ACCEPT
-    printf "   →    %-20s – %s\n" "$host:$port/udp" "$ip"
+    if [ "${CLAUDIUS_FIREWALL_VERBOSE:-0}" = "1" ]; then printf "   →    %-20s – %s\n" "$host:$port/udp" "$ip"; fi
   done
 }
 
@@ -94,27 +94,29 @@ iptables -t nat -A OUTPUT -p tcp -j DNAT --to-destination "$ENVOY_IP:3128"
 iptables        -A OUTPUT -d "$ENVOY_IP" -p tcp --dport 3128       -j ACCEPT
 
 # ── Status: always-on ──────────────────────────────────────────────────────────
-fw_line "icmp/icmpv6" "open"
-fw_line "udp+tcp/53  (DNS)" "${CLAUDIUS_DNS:-1.1.1.1 1.0.0.1 8.8.8.8 8.8.4.4}"
-[ "${CLAUDIUS_SSH:-0}" = "1" ] && fw_line "tcp/22  (SSH)" "open"
-fw_line "Envoy  (tcp)" "$ENVOY_IP:3128"
-for entry in ${CLAUDIUS_ALLOW:-}; do
-  case "$entry" in */tcp) printf "   →    %s\n" "${entry%/tcp}" ;; esac
-done
+if [ "${CLAUDIUS_FIREWALL_VERBOSE:-0}" = "1" ]; then
+  fw_line "icmp/icmpv6" "open"
+  fw_line "udp+tcp/53  (DNS)" "${CLAUDIUS_DNS:-1.1.1.1 1.0.0.1 8.8.8.8 8.8.4.4}"
+  [ "${CLAUDIUS_SSH:-0}" = "1" ] && fw_line "tcp/22  (SSH)" "open"
+  fw_line "Envoy  (tcp)" "$ENVOY_IP:3128"
+  for entry in ${CLAUDIUS_ALLOW:-}; do
+    case "$entry" in */tcp) printf "   →    %s\n" "${entry%/tcp}" ;; esac
+  done
+fi
 
 # ── UDP routing ────────────────────────────────────────────────────────────────
 _has_udp=0
 for _e in ${CLAUDIUS_ALLOW:-}; do case "$_e" in */udp) _has_udp=1; break ;; esac; done
-[ "$_has_udp" = "1" ] && printf "   →  iptables  (udp)\n"
+if [ "$_has_udp" = "1" ] && [ "${CLAUDIUS_FIREWALL_VERBOSE:-0}" = "1" ]; then printf "   →  iptables  (udp)\n"; fi
 for entry in ${CLAUDIUS_ALLOW:-}; do
   parse_allow_entry "$entry" || continue
   [ "$proto" = "tcp" ] && continue
   if [ "$host" = "*" ]; then
     fw_both -A OUTPUT -p udp --dport "$port" -j ACCEPT
-    printf "   →    udp/%-6s *\n" "$port"
+    if [ "${CLAUDIUS_FIREWALL_VERBOSE:-0}" = "1" ]; then printf "   →    udp/%-6s *\n" "$port"; fi
   else
     add_udp_rule "$host" "$port"
   fi
 done
 
-printf "   ✕  %-22s – %s\n" "other" "blocked"
+if [ "${CLAUDIUS_FIREWALL_VERBOSE:-0}" = "1" ]; then printf "   ✕  %-22s – %s\n" "other" "blocked"; fi

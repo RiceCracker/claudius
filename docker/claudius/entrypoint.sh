@@ -80,12 +80,13 @@ fi
 echo ""
 
 # ── Hints ─────────────────────────────────────────────────────────────────────
-[ -n "${SSH_AUTH_SOCK:-}" ] && echo "🗝️ SSH agent forwarded"
-[ -n "${GPG_SOCK:-}" ] && echo "⚜️ GPG agent forwarded"
-[ -n "${WAYLAND_DISPLAY:-}" ] && echo "📜 Clipboard forwarded (Wayland)"
-[ -n "${DISPLAY:-}" ] && echo "📜 Clipboard forwarded (X11)"
-[ "${CLAUDIUS_SUDO:-0}" = "1" ] && echo "⚠️  sudo enabled (scope: ${CLAUDIUS_SUDO_CMDS:-apt apt-get pip pip3 npm})"
-echo ""
+_any_hint=0
+[ -n "${SSH_AUTH_SOCK:-}" ] && { echo "🗝️ SSH agent forwarded"; _any_hint=1; }
+[ -n "${GPG_SOCK:-}" ] && { echo "⚜️ GPG agent forwarded"; _any_hint=1; }
+[ -n "${WAYLAND_DISPLAY:-}" ] && { echo "📜 Clipboard forwarded (Wayland)"; _any_hint=1; }
+[ -n "${DISPLAY:-}" ] && { echo "📜 Clipboard forwarded (X11)"; _any_hint=1; }
+[ "${CLAUDIUS_SUDO:-0}" = "1" ] && { echo "⚠️ sudo enabled (scope: ${CLAUDIUS_SUDO_CMDS:-apt apt-get pip pip3 npm})"; _any_hint=1; }
+[ "$_any_hint" = "1" ] && echo ""
 if [ -n "${DOCKER_HOST:-}" ]; then
   _docker_cmds="ps | logs | images | inspect | info | network ls | volume ls"
   [ "${DOCKER_WRITE:-}" = "1" ] && _docker_cmds="$_docker_cmds | run | build | stop"
