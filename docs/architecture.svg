@@ -1,0 +1,950 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="1000"
+   height="660"
+   viewBox="0 0 1000 660"
+   font-family="ui-monospace, 'SF Mono', 'Fira Code', Consolas, monospace"
+   version="1.1"
+   id="svg868"
+   sodipodi:docname="architecture.svg"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview870"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="0.80829124"
+     inkscape:cx="334.6566"
+     inkscape:cy="325.99636"
+     inkscape:window-width="1374"
+     inkscape:window-height="831"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg868" />
+  <defs
+     id="defs674">
+    <inkscape:path-effect
+       effect="bspline"
+       id="path-effect13797"
+       is_visible="true"
+       lpeversion="1"
+       weight="33.333333"
+       steps="2"
+       helper_size="0"
+       apply_no_weight="true"
+       apply_with_weight="true"
+       only_selected="false" />
+    <marker
+       id="arr"
+       viewBox="0 0 7 6"
+       refX="7"
+       refY="4"
+       markerWidth="4.375"
+       markerHeight="3.75"
+       orient="auto"
+       preserveAspectRatio="xMidYMid">
+      <path
+         d="M 0,1 7,4 0,7 Z"
+         fill="#6B5B45"
+         id="path656" />
+    </marker>
+    <marker
+       id="arrG"
+       viewBox="0 0 7 6"
+       refX="7"
+       refY="4"
+       markerWidth="4.375"
+       markerHeight="3.75"
+       orient="auto"
+       preserveAspectRatio="xMidYMid">
+      <path
+         d="M 0,1 7,4 0,7 Z"
+         fill="#5B7A4F"
+         id="path659" />
+    </marker>
+    <marker
+       id="arrO"
+       viewBox="0 0 8 8"
+       refX="7"
+       refY="4"
+       markerWidth="5"
+       markerHeight="5"
+       orient="auto">
+      <path
+         d="M 0,1 7,4 0,7 Z"
+         fill="#B5442A"
+         id="path662" />
+    </marker>
+    <marker
+       id="arrP"
+       viewBox="0 0 8 8"
+       refX="7"
+       refY="4"
+       markerWidth="5"
+       markerHeight="5"
+       orient="auto">
+      <path
+         d="M 0,1 7,4 0,7 Z"
+         fill="#7B5B87"
+         id="path665" />
+    </marker>
+    <marker
+       id="arrB"
+       viewBox="0 0 8 8"
+       refX="7"
+       refY="4"
+       markerWidth="5"
+       markerHeight="5"
+       orient="auto">
+      <path
+         d="M 0,1 7,4 0,7 Z"
+         fill="#4A6B8C"
+         id="path668" />
+    </marker>
+    <marker
+       id="arrD"
+       viewBox="0 0 8 8"
+       refX="7"
+       refY="4"
+       markerWidth="5"
+       markerHeight="5"
+       orient="auto">
+      <path
+         d="M 0,1 7,4 0,7 Z"
+         fill="#8A7560"
+         id="path671" />
+    </marker>
+    <marker
+       id="arrD-3"
+       viewBox="0 0 8 8"
+       refX="7"
+       refY="4"
+       markerWidth="5"
+       markerHeight="5"
+       orient="auto">
+      <path
+         d="M 0,1 7,4 0,7 Z"
+         fill="#8A7560"
+         id="path671-6" />
+    </marker>
+    <marker
+       id="arrD-3-7"
+       viewBox="0 0 7 6"
+       refX="7"
+       refY="4"
+       markerWidth="4.375"
+       markerHeight="3.75"
+       orient="auto"
+       preserveAspectRatio="xMidYMid">
+      <path
+         d="M 0,1 7,4 0,7 Z"
+         fill="#8A7560"
+         id="path671-6-5" />
+    </marker>
+    <marker
+       id="arr-6"
+       viewBox="0 0 7 6"
+       refX="7"
+       refY="4"
+       markerWidth="4.375"
+       markerHeight="3.75"
+       orient="auto"
+       preserveAspectRatio="xMidYMid">
+      <path
+         d="M 0,1 7,4 0,7 Z"
+         fill="#6B5B45"
+         id="path656-2" />
+    </marker>
+  </defs>
+  <!-- canvas background -->
+  <rect
+     width="992"
+     height="651.19482"
+     fill="#F2E8D5"
+     rx="6.1589017"
+     id="rect676"
+     x="4.2379074"
+     y="5.6063013"
+     style="stroke-width:1.00967;marker-end:url(#arrG)" />
+  <!-- title -->
+  <text
+     x="500"
+     y="29.576885"
+     text-anchor="middle"
+     font-size="13px"
+     font-weight="bold"
+     fill="#3D2B1F"
+     letter-spacing="0.3"
+     id="text678">🌿 Claudius 🏛️ – Architecture</text>
+  <!-- ══ Host area ════════════════════════════════════════════════ -->
+  <!-- claudius.sh launcher -->
+  <rect
+     x="38.678268"
+     y="134.40625"
+     width="148"
+     height="36"
+     rx="5"
+     fill="#EDE0C4"
+     stroke="#8A7560"
+     stroke-width="1.5"
+     id="rect680" />
+  <text
+     x="112.67827"
+     y="152.40625"
+     text-anchor="middle"
+     font-size="10.5px"
+     font-weight="bold"
+     fill="#3D2B1F"
+     id="text682">claudius.sh</text>
+  <text
+     x="112.67827"
+     y="164.40625"
+     text-anchor="middle"
+     font-size="9px"
+     fill="#8A7560"
+     id="text684">host launcher</text>
+  <!-- .env box -->
+  <rect
+     x="204.67827"
+     y="134.40625"
+     width="72"
+     height="36"
+     rx="4"
+     fill="#EDE0C4"
+     stroke="#8A7560"
+     stroke-width="1"
+     id="rect686" />
+  <text
+     x="236.67827"
+     y="149.40625"
+     text-anchor="middle"
+     font-size="10px"
+     font-weight="bold"
+     fill="#3D2B1F"
+     id="text688">.env</text>
+  <text
+     x="240.67827"
+     y="163.40625"
+     text-anchor="middle"
+     font-size="8.5px"
+     fill="#8A7560"
+     id="text690">CLAUDIUS_*</text>
+  <!-- .env → launcher -->
+  <line
+     x1="204.67827"
+     y1="152.40625"
+     x2="188.67827"
+     y2="152.40625"
+     stroke="#8A7560"
+     stroke-width="1.2"
+     marker-end="url(#arr)"
+     id="line692" />
+  <!-- user-init.sh box -->
+  <g
+     id="g3777"
+     transform="translate(-72.791193,47.857955)">
+    <rect
+       x="278"
+       y="38"
+       width="130"
+       height="36"
+       rx="4"
+       fill="#EDE0C4"
+       stroke="#8A7560"
+       stroke-width="1"
+       id="rect694" />
+    <text
+       x="343"
+       y="53"
+       text-anchor="middle"
+       font-size="10px"
+       font-weight="bold"
+       fill="#3D2B1F"
+       id="text696">opt: user-init.sh</text>
+    <text
+       x="343"
+       y="67"
+       text-anchor="middle"
+       font-size="8.5px"
+       fill="#8A7560"
+       id="text698">runs as root on start</text>
+  </g>
+  <!-- user-init.sh → docker network (mounts in) -->
+  <!-- custom image box -->
+  <rect
+     x="205.13239"
+     y="40.379551"
+     width="159.12726"
+     height="36.026405"
+     rx="3.7887442"
+     fill="#EDE0C4"
+     stroke="#8A7560"
+     stroke-width="0.973592"
+     id="rect702" />
+  <text
+     x="285.1456"
+     y="55.392757"
+     text-anchor="middle"
+     font-size="10px"
+     font-weight="bold"
+     fill="#3D2B1F"
+     id="text704">opt: custom Dockerfile</text>
+  <text
+     x="285.1456"
+     y="69.392754"
+     text-anchor="middle"
+     font-size="8.5px"
+     fill="#8A7560"
+     id="text706">FROM claudius (optional)</text>
+  <!-- custom image → bent arrow → top of Claudius container -->
+  <!-- goes: down to y=102, left to x=213, down to Claudius top (y=134) -->
+  <text
+     x="390.97162"
+     y="107.71804"
+     font-size="8px"
+     fill="#8A7560"
+     id="text710">CLAUDIUS_IMAGE</text>
+  <text
+     x="280.02377"
+     y="132.81801"
+     font-size="8px"
+     fill="#8A7560"
+     id="text710-5">CLAUDIUS_USER_INIT</text>
+  <!-- launcher → docker network -->
+  <line
+     x1="112.67827"
+     y1="171.40625"
+     x2="112.67827"
+     y2="207.40625"
+     stroke="#8A7560"
+     stroke-width="1.5"
+     marker-end="url(#arr)"
+     id="line712" />
+  <!-- ══ Docker network ════════════════════════════════════════════ -->
+  <rect
+     x="34.678268"
+     y="209.40625"
+     width="740"
+     height="408"
+     rx="8"
+     fill="#E5EBE0"
+     stroke="#4A6B8C"
+     stroke-width="1.5"
+     stroke-dasharray="7, 3"
+     id="rect714" />
+  <text
+     x="45.678268"
+     y="224.40625"
+     font-size="9.5px"
+     fill="#4A6B8C"
+     font-weight="bold"
+     id="text716">docker network claudius-$$</text>
+  <!-- ══ Claudius container ════════════════════════════════════════ -->
+  <rect
+     x="48.678268"
+     y="231.40625"
+     width="370"
+     height="376"
+     rx="6"
+     fill="#E8EFE2"
+     stroke="#5B7A4F"
+     stroke-width="1.5"
+     id="rect718" />
+  <text
+     x="233.67827"
+     y="248.40625"
+     text-anchor="middle"
+     font-size="11px"
+     font-weight="bold"
+     fill="#3D5C35"
+     id="text720">claudius-$$</text>
+  <!-- ROOT section -->
+  <rect
+     x="60.678268"
+     y="255.40625"
+     width="346"
+     height="108"
+     rx="4"
+     fill="#F5DDD5"
+     stroke="#B5442A"
+     stroke-width="1"
+     id="rect722" />
+  <text
+     x="76.678268"
+     y="271.40625"
+     font-size="9.5px"
+     font-weight="bold"
+     fill="#8B2E18"
+     id="text724">root (entrypoint.sh)</text>
+  <text
+     x="76.678268"
+     y="285.40625"
+     font-size="9px"
+     fill="#6B5B45"
+     id="text726">UID/GID mapping · user-init hook</text>
+  <text
+     x="76.678268"
+     y="298.40625"
+     font-size="9px"
+     fill="#6B5B45"
+     id="text728">iptables: OUTPUT DROP · NAT all TCP --&gt; envoy:3128</text>
+  <text
+     x="76.678268"
+     y="311.40625"
+     font-size="9px"
+     fill="#777777"
+     id="text730">Allow DNS :53 --&gt; direct (bypass Envoy)</text>
+  <text
+     x="76.678268"
+     y="324.40625"
+     font-size="9px"
+     fill="#777777"
+     id="text732">Allow UDP entries --&gt; direct via iptables (CLAUDIUS_ALLOW)</text>
+  <text
+     x="76.678268"
+     y="340.40625"
+     font-size="8.5px"
+     fill="#B5442A"
+     id="text734">caps used: NET_ADMIN (iptables) · SETUID/SETGID (gosu)</text>
+  <g
+     id="g22967"
+     transform="translate(2.0214822)">
+    <rect
+       x="348.67825"
+       y="257.40625"
+       width="54"
+       height="16"
+       rx="3"
+       fill="#B5442A"
+       id="rect736" />
+    <text
+       x="376.04681"
+       y="267.71008"
+       text-anchor="middle"
+       font-size="8px"
+       font-weight="bold"
+       fill="#ffffff"
+       id="text738">NET_ADMIN</text>
+  </g>
+  <!-- ROOT → DROP arrow -->
+  <line
+     x1="233.67827"
+     y1="364.40625"
+     x2="233.67827"
+     y2="376.40625"
+     stroke="#C4882A"
+     stroke-width="2"
+     marker-end="url(#arrO)"
+     id="line740" />
+  <!-- DROP box -->
+  <rect
+     x="60.678268"
+     y="377.40625"
+     width="346"
+     height="42"
+     rx="4"
+     fill="#F5EDD0"
+     stroke="#C4882A"
+     stroke-width="1.5"
+     id="rect742" />
+  <text
+     x="233.67827"
+     y="393.40625"
+     text-anchor="middle"
+     font-size="10px"
+     font-weight="bold"
+     fill="#8B5A1A"
+     id="text744">privilege drop</text>
+  <text
+     x="70.678268"
+     y="408.40625"
+     font-size="9px"
+     fill="#6B4C1A"
+     id="text746">setpriv --bounding-set=-net_admin · gosu $HOST_USER</text>
+  <g
+     id="g22909"
+     transform="translate(3.7119203)">
+    <rect
+       x="307.67825"
+       y="379.40625"
+       width="93"
+       height="16"
+       rx="3"
+       fill="#C4882A"
+       id="rect748" />
+    <text
+       x="354.31909"
+       y="389.90927"
+       text-anchor="middle"
+       font-size="8px"
+       font-weight="bold"
+       fill="#ffffff"
+       id="text750">NET_ADMIN revoked</text>
+  </g>
+  <!-- DROP → USER arrow -->
+  <line
+     x1="233.67827"
+     y1="420.40625"
+     x2="233.67827"
+     y2="432.40625"
+     stroke="#5B7A4F"
+     stroke-width="2"
+     marker-end="url(#arrG)"
+     id="line752" />
+  <!-- USER section -->
+  <rect
+     x="60.678268"
+     y="433.40625"
+     width="346"
+     height="48"
+     rx="4"
+     fill="#D5E8C8"
+     stroke="#5B7A4F"
+     stroke-width="1.5"
+     id="rect754" />
+  <text
+     x="233.67827"
+     y="449.40625"
+     text-anchor="middle"
+     font-size="11px"
+     font-weight="bold"
+     fill="#2D4A20"
+     id="text756">Claude Code ($HOST_USER)</text>
+  <text
+     x="233.67827"
+     y="464.40625"
+     text-anchor="middle"
+     font-size="9px"
+     fill="#3D5C35"
+     id="text758">bash shell on exit · no NET_ADMIN · no setuid (SUDO=0)</text>
+  <g
+     id="g22851"
+     transform="translate(1.885308,-0.01291307)">
+    <rect
+       x="332.67825"
+       y="435.40625"
+       width="70"
+       height="16"
+       rx="3"
+       fill="#5B7A4F"
+       id="rect760" />
+    <text
+       x="367.67825"
+       y="445.82794"
+       text-anchor="middle"
+       font-size="8px"
+       font-weight="bold"
+       fill="#ffffff"
+       id="text762">unprivileged</text>
+  </g>
+  <!-- mounts section -->
+  <line
+     x1="60.678268"
+     y1="493.40625"
+     x2="408.67825"
+     y2="493.40625"
+     stroke="#A0B88A"
+     stroke-width="0.8"
+     id="line764" />
+  <text
+     x="60.678268"
+     y="507.40625"
+     font-size="9.5px"
+     font-weight="bold"
+     fill="#6B5B45"
+     id="text766">Mounts from host</text>
+  <text
+     x="70.678268"
+     y="521.40625"
+     font-size="9px"
+     fill="#6B5B45"
+     id="text768">~/&lt;project&gt; --&gt; /home/$user/&lt;project&gt; (working dir)</text>
+  <text
+     x="70.678268"
+     y="535.40625"
+     font-size="9px"
+     fill="#6B5B45"
+     id="text770">~/.claude --&gt; settings, memory, MCP config</text>
+  <text
+     x="70.678268"
+     y="549.40625"
+     font-size="9px"
+     fill="#6B5B45"
+     id="text772">~/.claude.json --&gt; auth token</text>
+  <text
+     x="70.678268"
+     y="563.40625"
+     font-size="9px"
+     fill="#A89880"
+     id="text774">opt: SSH socket · GPG socket · Wayland / X11 clipboard</text>
+  <text
+     x="70.678268"
+     y="577.40625"
+     font-size="9px"
+     fill="#A89880"
+     id="text776">opt: user-init.sh --&gt; /etc/claudius/user-init.sh</text>
+  <!-- ══ Envoy Proxy ════════════════════════════════════════════════ -->
+  <rect
+     x="470.67825"
+     y="231.40625"
+     width="285"
+     height="188"
+     rx="6"
+     fill="#F5E8D5"
+     stroke="#B5442A"
+     stroke-width="1.5"
+     id="rect778" />
+  <text
+     x="612.67828"
+     y="248.40625"
+     text-anchor="middle"
+     font-size="11px"
+     font-weight="bold"
+     fill="#7A2E18"
+     id="text780">Envoy Proxy (claudius-proxy-$$)</text>
+  <line
+     x1="475.67825"
+     y1="254.40625"
+     x2="749.67828"
+     y2="254.40625"
+     stroke="#E8D5B0"
+     stroke-width="0.8"
+     id="line782" />
+  <text
+     x="480.67825"
+     y="268.40625"
+     font-size="9.5px"
+     fill="#6B5B45"
+     id="text784">:3128 HTTP / CONNECT forward proxy</text>
+  <text
+     x="480.67825"
+     y="282.40625"
+     font-size="9.5px"
+     fill="#6B5B45"
+     id="text786">Lua filter: allowlist check on every request</text>
+  <text
+     x="490.67825"
+     y="295.40625"
+     font-size="9px"
+     fill="#8A7560"
+     id="text788">exact [host:port] --&gt; allow</text>
+  <text
+     x="490.67825"
+     y="308.40625"
+     font-size="9px"
+     fill="#8A7560"
+     id="text790">wildcard [*.domain:port] --&gt; allow</text>
+  <text
+     x="490.67825"
+     y="321.40625"
+     font-size="9px"
+     fill="#8A7560"
+     id="text792">no match --&gt; 403 Forbidden</text>
+  <line
+     x1="475.67825"
+     y1="329.40625"
+     x2="749.67828"
+     y2="329.40625"
+     stroke="#E8D5B0"
+     stroke-width="0.8"
+     id="line794" />
+  <text
+     x="480.67825"
+     y="342.40625"
+     font-size="9.5px"
+     fill="#6B5B45"
+     id="text796">always open: *.anthropic.com · pypi.org</text>
+  <text
+     x="480.67825"
+     y="356.40625"
+     font-size="9.5px"
+     fill="#6B5B45"
+     id="text798">extended by: CLAUDIUS_ALLOW</text>
+  <text
+     x="480.67825"
+     y="371.40625"
+     font-size="9px"
+     fill="#8A7560"
+     id="text800">config built at start from envoy.yaml.tpl</text>
+  <text
+     x="480.67825"
+     y="405.40625"
+     font-size="9px"
+     fill="#AA9980"
+     id="text802">envoyproxy/envoy-distroless:v1.32.9</text>
+  <!-- ══ Docker Socket Proxy ════════════════════════════════════════ -->
+  <rect
+     x="470.67825"
+     y="433.40625"
+     width="285"
+     height="145"
+     rx="6"
+     fill="#EDE5F0"
+     stroke="#7B5B87"
+     stroke-width="1.5"
+     id="rect804" />
+  <text
+     x="612.67828"
+     y="450.40625"
+     text-anchor="middle"
+     font-size="11px"
+     font-weight="bold"
+     fill="#5A3A6B"
+     id="text806">Docker Socket Proxy (claudius-docker-$$)</text>
+  <line
+     x1="475.67825"
+     y1="456.40625"
+     x2="749.67828"
+     y2="456.40625"
+     stroke="#C8B8D5"
+     stroke-width="0.8"
+     id="line808" />
+  <text
+     x="480.67825"
+     y="470.40625"
+     font-size="9.5px"
+     fill="#6B5B45"
+     id="text810">:2375 TCP proxy to host /var/run/docker.sock</text>
+  <text
+     x="480.67825"
+     y="484.40625"
+     font-size="9.5px"
+     fill="#6B5B45"
+     id="text812">read-only: ps · logs · images · inspect</text>
+  <text
+     x="480.67825"
+     y="498.40625"
+     font-size="9.5px"
+     fill="#6B5B45"
+     id="text814">info · network ls · volume ls</text>
+  <text
+     x="480.67825"
+     y="512.40625"
+     font-size="9.5px"
+     fill="#8A7560"
+     id="text816">write opt-in: run · build · stop</text>
+  <text
+     x="480.67825"
+     y="526.40625"
+     font-size="9.5px"
+     fill="#6B5B45"
+     id="text818">DOCKER_HOST=tcp://claudius-docker-$$:2375</text>
+  <text
+     x="480.67825"
+     y="564.40625"
+     font-size="9px"
+     fill="#AA9980"
+     id="text820">tecnativa/docker-socket-proxy:v0.4.2</text>
+  <!-- ══ Internet (external) ══════════════════════════════════════ -->
+  <g
+     id="g17166"
+     transform="translate(1.5644079,18.231567)">
+    <rect
+       x="840.67828"
+       y="216.40625"
+       width="118"
+       height="108"
+       rx="6"
+       fill="#F5F0E8"
+       stroke="#8A7560"
+       stroke-width="1.5"
+       id="rect822" />
+    <text
+       x="899.67828"
+       y="234.40625"
+       text-anchor="middle"
+       font-size="11px"
+       font-weight="bold"
+       fill="#3D2B1F"
+       id="text824">Internet</text>
+    <line
+       x1="845.67828"
+       y1="240.40625"
+       x2="952.67828"
+       y2="240.40625"
+       stroke="#E8DFC8"
+       stroke-width="0.8"
+       id="line826" />
+    <text
+       x="850.67828"
+       y="254.40625"
+       font-size="9.5px"
+       fill="#6B5B45"
+       id="text828">*.anthropic.com</text>
+    <text
+       x="850.67828"
+       y="268.40625"
+       font-size="9.5px"
+       fill="#6B5B45"
+       id="text830">pypi.org</text>
+    <text
+       x="850.67828"
+       y="282.40625"
+       font-size="9.5px"
+       fill="#8A7560"
+       id="text832">+ CLAUDIUS_ALLOW</text>
+    <text
+       x="850.67828"
+       y="300.40625"
+       font-size="9px"
+       fill="#8B2E18"
+       font-weight="bold"
+       id="text834">allowlisted only</text>
+  </g>
+  <!-- ══ Host Docker Daemon (external) ══════════════════════════ -->
+  <g
+     id="g27171">
+    <rect
+       x="840.67828"
+       y="433.40625"
+       width="118"
+       height="80"
+       rx="6"
+       fill="#DDE5EE"
+       stroke="#4A6B8C"
+       stroke-width="1.5"
+       id="rect836" />
+    <text
+       x="899.67828"
+       y="451.40625"
+       text-anchor="middle"
+       font-size="11px"
+       font-weight="bold"
+       fill="#2A3D5C"
+       id="text838">Host Docker</text>
+    <text
+       x="899.67828"
+       y="466.40625"
+       text-anchor="middle"
+       font-size="10px"
+       fill="#4A6B8C"
+       id="text840">Daemon</text>
+    <line
+       x1="845.67828"
+       y1="472.40625"
+       x2="952.67828"
+       y2="472.40625"
+       stroke="#A0B5C8"
+       stroke-width="0.8"
+       id="line842" />
+    <text
+       x="850.67828"
+       y="486.40625"
+       font-size="9px"
+       fill="#8A7560"
+       id="text844">docker.sock</text>
+    <text
+       x="850.67828"
+       y="500.40625"
+       font-size="9px"
+       fill="#8A7560"
+       id="text846">read-only proxied</text>
+  </g>
+  <!-- ══ Arrows ════════════════════════════════════════════════════ -->
+  <!-- UDP direct: Claudius → Internet (bypasses Envoy, arcs above proxy boxes) -->
+  <path
+     d="m 402.04191,231.21313 c 39.58263,-91.48117 273.2576,-149.644817 497.70759,2.68335"
+     fill="none"
+     stroke="#888888"
+     stroke-width="1.5"
+     stroke-dasharray="5, 3"
+     marker-end="url(#arr)"
+     id="path848"
+     sodipodi:nodetypes="cc"
+     style="stroke:#8A7560;stroke-width:1.5;stroke-linecap:butt;stroke-linejoin:bevel;stroke-dasharray:none;stroke-opacity:1" />
+  <text
+     x="799.56567"
+     y="167.39336"
+     text-anchor="middle"
+     font-size="8.5px"
+     fill="#8A7560"
+     id="text850"
+     style="fill:#8A7560;fill-opacity:1">UDP</text>
+  <!-- TCP/NAT: Claudius → Envoy (straight horizontal, 52px gap) -->
+  <line
+     x1="418.67825"
+     y1="298.40625"
+     x2="468.67825"
+     y2="298.40625"
+     stroke="#B5442A"
+     stroke-width="1.5"
+     stroke-dasharray="5, 3"
+     marker-end="url(#arrO)"
+     id="line852" />
+  <text
+     x="445.67825"
+     y="290.40625"
+     text-anchor="middle"
+     font-size="8.5px"
+     fill="#B5442A"
+     id="text854">TCP (NAT)</text>
+  <!-- Envoy → Internet (straight horizontal) -->
+  <text
+     x="809.38147"
+     y="272.27216"
+     text-anchor="middle"
+     font-size="8.5px"
+     fill="#95a5a6"
+     id="text858"
+     style="fill:#C4882A;fill-opacity:1">HTTP(S)</text>
+  <!-- API: Claudius → Docker Proxy (straight horizontal, 52px gap) -->
+  <line
+     x1="418.67825"
+     y1="461.40625"
+     x2="468.67825"
+     y2="461.40625"
+     stroke="#7B5B87"
+     stroke-width="1.5"
+     stroke-dasharray="5, 3"
+     marker-end="url(#arrP)"
+     id="line860" />
+  <text
+     x="443.67825"
+     y="453.40625"
+     text-anchor="middle"
+     font-size="8.5px"
+     fill="#7B5B87"
+     id="text862">API</text>
+  <!-- Docker Proxy → Host Docker (straight horizontal) -->
+  <line
+     x1="755.67828"
+     y1="491.40625"
+     x2="838.67828"
+     y2="491.40625"
+     stroke="#4A6B8C"
+     stroke-width="1.5"
+     marker-end="url(#arrB)"
+     id="line864" />
+  <text
+     x="804.67828"
+     y="486.40625"
+     text-anchor="middle"
+     font-size="8.5px"
+     fill="#4A6B8C"
+     id="text866">PROXY</text>
+  <path
+     style="fill:none;fill-opacity:1;stroke:#9ba5a6;stroke-linecap:square;stroke-linejoin:bevel;stroke-miterlimit:1.3;stroke-dasharray:3.996;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#arr);paint-order:stroke fill markers"
+     d="m 365.14204,58.025568 c 0,0 114.63069,92.901282 -87.6598,96.892762"
+     id="path15648"
+     sodipodi:nodetypes="cc" />
+  <path
+     style="fill:none;fill-opacity:1;stroke:#9ba5a6;stroke-linecap:square;stroke-linejoin:bevel;stroke-miterlimit:1.3;stroke-dasharray:3.996;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#arr-6);paint-order:stroke fill markers"
+     d="m 292.17284,121.66911 c 0,0 1.81463,14.74787 -15.20597,24.24716"
+     id="path15648-9"
+     sodipodi:nodetypes="cc" />
+  <path
+     style="fill:none;fill-opacity:1;stroke:#C4882A;stroke-width:1.5;stroke-linecap:square;stroke-linejoin:bevel;stroke-miterlimit:1.3;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#arrO);paint-order:stroke fill markers"
+     d="m 755.80491,280.93328 86.58214,-0.89974"
+     id="path19060"
+     sodipodi:nodetypes="cc" />
+</svg>

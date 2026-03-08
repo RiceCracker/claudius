@@ -8,6 +8,7 @@ He was not without political violence — he authorized executions, navigated tr
 
 ## Contents
 
+- [Architecture](#architecture)
 - [What's inside](#whats-inside)
 - [Setup](#setup)
 - [Usage](#usage)
@@ -23,7 +24,14 @@ He was not without political violence — he authorized executions, navigated tr
 
 ---
 
+## Architecture
+
+![Architecture](docs/architecture.svg)
+
+---
+
 ## What's inside
+
 
 Claude Code in a hardened Docker container. Egress locked down via iptables and an Envoy sidecar with an explicit allowlist; capabilities dropped, PID namespace isolated, Docker access filtered through a socket proxy. Credentials, SSH/GPG agents, clipboard, MCP config, and skills pass through from the host unchanged — the full Claude Code experience preserved inside. Language servers and the Gemini MCP toolkit included; extensible via custom images or a runtime init hook.
 
