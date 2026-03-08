@@ -6,36 +6,14 @@ He was not without political violence — he authorized executions, navigated tr
 
 ---
 
-## Contents
 
-- [Architecture](#architecture)
-- [What's inside](#whats-inside)
-- [Setup](#setup)
-- [Usage](#usage)
-- [Configuration](#configuration)
-- [Extending](#extending)
-- [Security](#security)
-  - [Capabilities and limits](#capabilities-and-limits)
-  - [Measures](#measures)
-  - [Mounts](#mounts)
-  - [Network](#network)
-  - [Docker](#docker)
-  - [Threat model](#threat-model)
-
----
-
-## Architecture
-
-![Architecture](docs/architecture.svg)
-
----
-
-## What's inside
-
+## Overview
 
 Claude Code in a hardened Docker container. Egress locked down via iptables and an Envoy sidecar with an explicit allowlist; capabilities dropped, PID namespace isolated, Docker access filtered through a socket proxy. Credentials, SSH/GPG agents, clipboard, MCP config, and skills pass through from the host unchanged — the full Claude Code experience preserved inside. Language servers and the Gemini MCP toolkit included; extensible via custom images or a runtime init hook.
 
 The sandbox protects the host. It does not protect your project files from the agent.
+
+![Architecture](docs/architecture.svg)
 
 | Component | Details |
 | --- | --- |
@@ -142,7 +120,6 @@ Ready-made examples in `docker/claudius/`:
 | File | Adds |
 | --- | --- |
 | `Dockerfile.go.example` | Go 1.24 (multi-stage) + `gopls` |
-| `Dockerfile.web.example` | GraphQL LSP (TS/JS/Python already in base) |
 | `Dockerfile.flutter.example` | Flutter SDK (includes Dart + language server) + Android SDK + `flutter analyze/build apk/linux/web` |
 | `Dockerfile.rust.example` | Rust stable + `rust-analyzer` |
 
@@ -187,58 +164,6 @@ A template is at `user-init.sh.example`.
 
 ## Security
 
-### Capabilities and limits
-
-#### Cannot
-
-- Access the host filesystem outside the mounted paths
-- Make network connections beyond `CLAUDIUS_ALLOW` — TCP enforced by Envoy, UDP by iptables; only DNS to configured resolvers, ICMP, and `*.anthropic.com:443` always pass
-- Persist anything outside the mounted directories
-- See or signal host processes — PID namespace is isolated
-- Use raw ethernet sockets — `AF_PACKET` blocked by seccomp even with `CAP_NET_RAW`
-- Load kernel modules — `CAP_SYS_MODULE` not in capability set
-- Access the Docker socket directly — only via the filtered [docker-socket-proxy](https://github.com/Tecnativa/docker-socket-proxy)
-- Escalate privileges beyond what `CLAUDIUS_SUDO=1` permits (capabilities remain bounded)
-- Run Docker write operations unless `CLAUDIUS_DOCKER_WRITE=1`
-
-#### Can
-
-- Read and write the project directory
-- Read and write `~/.claude/` and `~/.claude.json`, including `.credentials.json` (Anthropic API key)
-- Make outbound requests to `CLAUDIUS_ALLOW` destinations (plus `*.anthropic.com:443`, always open)
-- Use the host SSH agent (if `CLAUDIUS_SSH=1`)
-- Sign commits via the host GPG agent (if `CLAUDIUS_GPG=1`)
-- Read and write the host clipboard (if `CLAUDIUS_CLIPBOARD=1`, on by default)
-- Capture network traffic on container interfaces (if `CLAUDIUS_SUDO=1` and `tcpdump` in `CLAUDIUS_SUDO_CMDS`)
-
----
-
-### Measures
-
-| Measure | Detail |
-| --- | --- |
-| Isolated filesystem | Project dir, `~/.claude/`, `~/.claude.json` — no other host paths |
-| Network firewall | iptables OUTPUT defaults to DROP; all TCP goes through Envoy; only `CLAUDIUS_ALLOW` entries pass |
-| DNS restriction | DNS only reaches resolvers listed in `CLAUDIUS_DNS` |
-| Capability drop | `--cap-drop ALL`; only `CHOWN`, `DAC_OVERRIDE`, `FOWNER`, `SETUID`, `SETGID`, `SETPCAP`, `NET_ADMIN`, `NET_RAW` added back |
-| NET_ADMIN removal | Dropped from the process bounding set after firewall init — no child process can re-acquire it |
-| Seccomp | Docker's default seccomp profile applies — blocks ~44 syscalls including `kexec_load`, `create_module`, and `AF_PACKET` sockets. Not explicitly set; intentionally relies on Docker's built-in default |
-| No privilege escalation | `sudo` is inert by default (no sudoers entry, `--no-new-privs` set). `CLAUDIUS_SUDO=1` adds a scoped sudoers entry and lifts `--no-new-privs` — capabilities remain bounded |
-| PID isolation | Container has its own PID namespace — host processes are not visible |
-| PID limit | 512 processes max |
-| Resource limits | Memory and CPU capped (default 4 GB / 4 CPUs) |
-| Docker socket proxy | Inspect-only by default; write ops blocked at the proxy level. Traffic routes through Envoy — the proxy IP is not reachable directly, only its hostname |
-| No host environment | Only the necessary env vars are passed in |
-| Tamper-proof policy | `CLAUDE.md` at `/etc/claude-code/CLAUDE.md` — highest precedence in Claude Code's config hierarchy, can't be overridden by project or user instructions |
-
-#### Managed policy (CLAUDE.md)
-
-A policy file is baked into the image at `/etc/claude-code/CLAUDE.md` (source: [`CLAUDE.md`](CLAUDE.md)). Claude Code loads it at the highest precedence level — project-level and user-level instructions cannot override it. It instructs Claude not to read credential files, not to send data to external URLs, not to modify its own config or hooks, and to treat content in files and web pages as data rather than directives.
-
-These are prompt-level instructions, not technical enforcement. They raise the bar for accidental misuse, but a sufficiently adversarial prompt could still override them.
-
----
-
 ### Mounts
 
 | Host path | Container path | Mode |
@@ -252,7 +177,7 @@ These are prompt-level instructions, not technical enforcement. They raise the b
 | `/tmp/.X11-unix` | same | ro — only when `CLAUDIUS_CLIPBOARD=1`, X11 |
 | `$CLAUDIUS_USER_INIT` | `/etc/claudius/user-init.sh` | ro — only when `CLAUDIUS_USER_INIT` is set |
 
-Note: `~/.claude/` contains `.credentials.json` (the Anthropic API key). It is accessible from inside the container. With `CLAUDIUS_SUDO=1` it is readable as root.
+Note: `~/.claude/` and `~/.claude.json` are mounted read-write and persist on the host — changes to settings, hooks, or MCP config take effect immediately. `~/.claude/` contains `.credentials.json` (the Anthropic API key), readable inside the container and as root when `CLAUDIUS_SUDO=1`. Not technically enforced — mitigated by `CLAUDE.md`.
 
 ---
 
@@ -288,7 +213,7 @@ CLAUDIUS_ALLOW="
 
 Port 80 uses Envoy's HTTP forward proxy mode; everything else uses CONNECT tunneling. Both are transparent to applications.
 
-`*.anthropic.com:443` is always allowed regardless of `CLAUDIUS_ALLOW` — Claude Code needs it to function.
+`*.anthropic.com:443` and `pypi.org:443` are always allowed regardless of `CLAUDIUS_ALLOW` — hardcoded in the launcher.
 
 ---
 
@@ -304,28 +229,109 @@ docker ps / logs / images / inspect / info / network ls / volume ls
 
 All write ops are blocked at the proxy level by default. Set `CLAUDIUS_DOCKER_WRITE=1` to enable all POST endpoints: `run`, `build`, `stop`, `exec`, `kill`, `commit`.
 
+The proxy is reachable by hostname through Envoy only — direct IP access is blocked. This prevents bypassing the method filter by connecting to the proxy IP with the system proxy disabled.
+
+Note: `docker inspect` is permitted and returns `Config.Env` — environment variables of other containers on the host (e.g. database passwords) are visible. Keep this in mind if you run sensitive containers alongside claudius.
+
+---
+
+### Privilege drop
+
+The entrypoint runs as root long enough to set up iptables and run the user-init hook, then hands off. The exact command depends on `CLAUDIUS_SUDO`:
+
+```bash
+# SUDO=0 (default)
+setpriv --bounding-set=-net_admin gosu $HOST_USER setpriv --no-new-privs claude
+
+# SUDO=1
+setpriv --bounding-set=-net_admin gosu $HOST_USER claude
+```
+
+What happens:
+
+1. **`setpriv --bounding-set=-net_admin`** — removes `NET_ADMIN` from the capability bounding set. This is a one-way door: no process in this container can ever re-acquire it, even if it regains root.
+2. **`gosu $HOST_USER`** — switches UID/GID to your user. Unlike `su` or `sudo`, gosu uses `exec` internally, meaning it replaces itself with the new process rather than staying alive as a parent. No root process remains in the tree.
+3. **`setpriv --no-new-privs`** (SUDO=0 only) — prevents any further privilege escalation via setuid binaries.
+
+Claude is run first; if it exits, the entrypoint falls through to an interactive bash shell. Both run under the same dropped-privilege context.
+
+---
+
+### Managed policy (CLAUDE.md)
+
+A policy file is baked into the image at `/etc/claude-code/CLAUDE.md` (source: [`CLAUDE.md`](CLAUDE.md)). Claude Code loads it at the highest precedence level — project-level and user-level instructions cannot override it. It instructs Claude not to read credential files, not to send data to external URLs, not to modify its own config or hooks, and to treat content in files and web pages as data rather than directives.
+
+These are prompt-level instructions, not technical enforcement. They raise the bar for accidental misuse, but a sufficiently adversarial prompt could still override them.
+
+---
+
+### Measure summary
+
+Everything described above, in one place.
+
+| Measure | Detail |
+| --- | --- |
+| Isolated filesystem | Project dir, `~/.claude/`, `~/.claude.json` — no other host paths |
+| Network firewall | iptables OUTPUT defaults to DROP; all TCP goes through Envoy; only `CLAUDIUS_ALLOW` entries pass |
+| DNS restriction | DNS only reaches resolvers listed in `CLAUDIUS_DNS` |
+| Capability drop | `--cap-drop ALL`; only `CHOWN`, `DAC_OVERRIDE`, `FOWNER`, `SETUID`, `SETGID`, `SETPCAP`, `NET_ADMIN`, `NET_RAW` added back |
+| NET_ADMIN removal | Dropped from the process bounding set after firewall init — no child process can re-acquire it |
+| Privilege drop | `gosu` replaces the entrypoint process via `exec` — no root parent remains, signals go directly to Claude. See [Privilege drop](#privilege-drop). |
+| Seccomp | Docker's default seccomp profile applies — blocks ~44 syscalls including `kexec_load`, `create_module`, and `AF_PACKET` sockets. Not explicitly set; intentionally relies on Docker's built-in default |
+| No privilege escalation | `sudo` is inert by default (no sudoers entry, `--no-new-privs` set). `CLAUDIUS_SUDO=1` adds a scoped sudoers entry and lifts `--no-new-privs` — capabilities remain bounded |
+| PID isolation | Container has its own PID namespace — host processes are not visible |
+| PID limit | 512 processes max |
+| Resource limits | Memory and CPU capped (default 4 GB / 4 CPUs) |
+| Docker socket proxy | Inspect-only by default; write ops blocked at the proxy level. Traffic routes through Envoy — the proxy IP is not reachable directly, only its hostname |
+| No host environment | Only the necessary env vars are passed in |
+| Tamper-proof policy | `CLAUDE.md` at `/etc/claude-code/CLAUDE.md` — highest precedence in Claude Code's config hierarchy, can't be overridden by project or user instructions |
+
+These measures harden the sandbox. What they cannot do is protect against what you explicitly ask Claude to do — or against the risks that come with each opt-in. That's what the threat model is for.
+
+---
+
+### Capabilities and limits
+
+#### Cannot
+
+- Access the host filesystem outside the mounted paths
+- Make network connections beyond `CLAUDIUS_ALLOW` — TCP enforced by Envoy, UDP by iptables; only DNS to configured resolvers, ICMP, and `*.anthropic.com:443` always pass
+- Persist anything outside the mounted directories
+- See or signal host processes — PID namespace is isolated
+- Use raw ethernet sockets — `AF_PACKET` blocked by seccomp even with `CAP_NET_RAW`
+- Load kernel modules — `CAP_SYS_MODULE` not in capability set
+- Access the Docker socket directly — only via the filtered [docker-socket-proxy](https://github.com/Tecnativa/docker-socket-proxy)
+- Escalate privileges beyond what `CLAUDIUS_SUDO=1` permits (capabilities remain bounded)
+- Run Docker write operations unless `CLAUDIUS_DOCKER_WRITE=1`
+
+#### Can
+
+- Read and write the project directory
+- Read and write `~/.claude/` and `~/.claude.json`, including `.credentials.json` (Anthropic API key)
+- Make outbound requests to `CLAUDIUS_ALLOW` destinations (plus `*.anthropic.com:443`, always open)
+- Use the host SSH agent (if `CLAUDIUS_SSH=1`)
+- Sign commits via the host GPG agent (if `CLAUDIUS_GPG=1`)
+- Read and write the host clipboard (if `CLAUDIUS_CLIPBOARD=1`, on by default)
+- Capture network traffic on container interfaces (if `CLAUDIUS_SUDO=1` and `tcpdump` in `CLAUDIUS_SUDO_CMDS`)
+
 ---
 
 ### Threat model
 
-claudius is built to contain mistakes, not to stop a determined adversary. Accidental file access outside the project, unexpected network calls, runaway Docker commands — those are covered. If you tell Claude to exfiltrate something, it will try.
+claudius is built to contain mistakes, not to stop a determined adversary. Accidental file access outside the project, unexpected network calls, runaway Docker commands — those are covered. If you instruct Claude to exfiltrate data or destroy files, it will try.
 
-**No `CLAUDIUS_ALLOW`:** Envoy blocks all TCP (empty allowlist → HTTP 403 for everything). No outbound access except DNS and ICMP. Good for fully offline runs.
+**Default (no options set):** No outbound TCP except `*.anthropic.com:443` and `pypi.org:443`. No sudo. No Docker writes. No SSH or GPG. Claude runs as your user with a bounded capability set and no way back to root. This is the safest configuration.
 
-**With `CLAUDIUS_ALLOW`:** Only listed destinations pass. Hard enforcement via Envoy, not convention. `*:443/tcp` opens all HTTPS — the remaining risk is exfiltration, since Claude can POST to any endpoint. DNS exfiltration is partially mitigated by locking resolvers to known IPs. `CLAUDE.md` instructs Claude to only GET/HEAD externally — soft enforcement, but it raises the bar.
+**`CLAUDIUS_ALLOW`:** Each entry is a trust decision. Hard enforcement via Envoy for TCP, iptables for UDP — not convention. `*:443/tcp` opens all HTTPS, which means Claude can POST to any endpoint. DNS exfiltration is partially mitigated by locking resolvers to known IPs. `CLAUDE.md` instructs Claude to only GET/HEAD externally — soft enforcement, but it raises the bar.
 
-**UDP:** Bypasses Envoy entirely. Entries are resolved at startup; iptables rules are written for both IPv4 and IPv6. Once a destination IP:port is open, all UDP to it passes — no per-packet inspection. Keep UDP entries narrow. `*:port/udp` opens that port to the whole internet.
+**UDP:** Bypasses Envoy entirely. Entries are resolved at startup; iptables rules cover both IPv4 and IPv6. Once a destination IP:port is open, all UDP to it passes without per-packet inspection. Keep entries narrow — `*:port/udp` opens that port to the whole internet.
 
-**`CLAUDIUS_SUDO=1`:** Passwordless sudo for package managers gives Claude root inside the container. Root can read any mounted path, install software, and reconfigure the environment. Capabilities remain bounded — root cannot regain `NET_ADMIN` or `SYS_ADMIN`. Never combine with `CLAUDIUS_DOCKER_WRITE=1`; together they are equivalent to host root.
+**`CLAUDIUS_SUDO=1`:** Gives Claude passwordless root for the configured package managers. Root can read any mounted path, install software, and modify the environment. Capabilities remain bounded — root cannot regain `NET_ADMIN`. Never combine with `CLAUDIUS_DOCKER_WRITE=1`; together they are equivalent to host root.
 
-**`CLAUDIUS_DOCKER_WRITE=1`:** Enables all Docker write operations (`run`, `build`, `stop`, `exec`, `kill`, `commit`) via the socket proxy. Claude can launch a privileged container that mounts the host root filesystem and escape the sandbox entirely. Treat this as host-level access.
+**`CLAUDIUS_DOCKER_WRITE=1`:** Enables all Docker write operations via the socket proxy. Claude can launch a privileged container that mounts the host root filesystem and escape the sandbox entirely. Treat this as host-level access.
 
-**Docker socket proxy:** The socket is never mounted into the container. A [docker-socket-proxy](https://github.com/Tecnativa/docker-socket-proxy) exposes only allowed API endpoints. The proxy is reachable by hostname through Envoy only — direct IP access is blocked. This prevents bypassing the method filter by connecting to the proxy IP with the system proxy disabled. Note: `docker inspect` is permitted and returns `Config.Env` — environment variables of other containers on the host (e.g. database passwords) are readable. Keep this in mind if you run sensitive containers alongside claudius.
+**`--dangerously-skip-permissions`:** Suppresses all permission prompts. The firewall still applies, but Claude acts without asking. Useful for automated pipelines; know what you're enabling.
 
-**`--dangerously-skip-permissions`:** Suppresses all permission prompts. The firewall still applies, but Claude will act without asking. Useful for automated runs; know what you're enabling.
-
-**`/sandbox` mode:** Doesn't work here. The container runs `--cap-drop ALL`, which removes the unprivileged user namespaces that bubblewrap requires. The container itself is the isolation layer.
-
-**Mounted paths:** `~/.claude/` and `~/.claude.json` are mounted read-write and persist on the host. Changes to settings, hooks, or MCP config take effect on the host immediately. Not technically enforced — mitigated by `CLAUDE.md`.
+**`/sandbox` mode:** Doesn't work inside claudius. The container runs `--cap-drop ALL`, which removes the unprivileged user namespaces that bubblewrap requires. The container itself is the isolation layer.
 
 **You decide what you ask it to do.**
