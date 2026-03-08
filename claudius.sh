@@ -42,7 +42,7 @@ DOCKER_WRITE="${CLAUDIUS_DOCKER_WRITE:-}"
 SSH="${CLAUDIUS_SSH:-0}"
 GPG="${CLAUDIUS_GPG:-}"
 # Anthropic API is always reachable – Claude Code requires it
-ALLOW="*.anthropic.com:443/tcp ${CLAUDIUS_ALLOW:-}"
+ALLOW="*.anthropic.com:443/tcp pypi.org:443/tcp files.pythonhosted.org:443/tcp ${CLAUDIUS_ALLOW:-}"
 CLIPBOARD="${CLAUDIUS_CLIPBOARD:-1}"
 SUDO="${CLAUDIUS_SUDO:-0}"
 USER_INIT="${CLAUDIUS_USER_INIT:-}"
