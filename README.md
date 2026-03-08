@@ -9,7 +9,9 @@ He was not without political violence. He authorized executions, navigated treac
 
 ## Overview
 
-As the story above suggests, claudius is built to contain risk without getting in the way. A hardened sandbox that lets Claude Code do its job while keeping the host safe. Locked down by default; network egress, Docker access, SSH, clipboard, and sudo are all opt-in risks you control. Language servers and Gemini MCP included out of the box; extensible via custom docker images or a runtime init hook. It protects the host from the agent. Your project files are another matter.
+As the story above suggests, claudius is built to contain risk without getting in the way. A hardened sandbox that lets Claude Code do its job while keeping the host safe. Locked down by default; network egress, Docker access, SSH, clipboard, and sudo are all opt-in risks you control. Language servers and Gemini MCP included out of the box; extensible via custom docker images or a runtime init hook.
+
+And while claudius tries to implement reasonable measures to protects the host from the agent, your project files and prompting are another matter.
 
 ![Architecture](docs/architecture.svg)
 
@@ -219,7 +221,9 @@ Port 80 uses Envoy's HTTP forward proxy mode; everything else uses CONNECT tunne
 
 ### Docker
 
-claudius runs a [docker-socket-proxy](https://github.com/Tecnativa/docker-socket-proxy) sidecar on an isolated internal network. The Docker socket itself is never mounted into the container.
+claudius runs a [docker-socket-proxy](https://github.com/Tecnativa/docker-socket-proxy) sidecar on an isolated internal network. The Docker socket itself is never mounted into the container and Claude reaches it only through the filtered proxy.
+
+This lets Claude inspect your host's Docker environment: read logs, list containers, check image state — without being able to change anything. Useful for diagnosing a broken service or understanding what's running, with no risk of accidental `docker run` or `docker stop`.
 
 Available by default:
 
@@ -227,11 +231,11 @@ Available by default:
 docker ps / logs / images / inspect / info / network ls / volume ls
 ```
 
-All write ops are blocked at the proxy level by default. Set `CLAUDIUS_DOCKER_WRITE=1` to enable all POST endpoints: `run`, `build`, `stop`, `exec`, `kill`, `commit`.
+Write operations are blocked at the proxy level. Set `CLAUDIUS_DOCKER_WRITE=1` to enable them: `run`, `build`, `stop`, `exec`, `kill`, `commit`.
 
-The proxy is reachable by hostname through Envoy only — direct IP access is blocked. This prevents bypassing the method filter by connecting to the proxy IP with the system proxy disabled.
+The proxy is reachable by hostname through Envoy only — direct IP connections are blocked. This prevents bypassing the method filter by connecting to the proxy IP directly.
 
-Note: `docker inspect` is permitted and returns `Config.Env` — environment variables of other containers on the host (e.g. database passwords) are visible. Keep this in mind if you run sensitive containers alongside claudius.
+> **Note:** `docker inspect` is permitted and returns `Config.Env`. Environment variables of other containers on the host — including database passwords — are visible to Claude. Keep this in mind if you run sensitive containers alongside claudius.
 
 ---
 
