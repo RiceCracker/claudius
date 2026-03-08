@@ -1,17 +1,15 @@
 # 🌿 claudius 🏛️
 
-The Roman emperor Claudius (reigned 41–54 CE) spent much of his early life marginalized — kept from public office, mocked for his physical disabilities, and largely written off by his own family. When he unexpectedly became emperor after Caligula's assassination, he proved his detractors wrong. He reformed the imperial bureaucracy, presided personally over legal cases, built the harbour at Ostia, and conquered Britain. Ancient sources, written mostly by senatorial aristocrats who resented his reliance on freedmen administrators, tend to paint him as bumbling or manipulated. The reality is more interesting: a deeply learned man, shaped by years of enforced observation rather than action, who governed with procedural seriousness and got more done than most.
+The Roman emperor Claudius (reigned 41–54 CE) spent much of his early life marginalized, kept from public office, mocked for his physical disabilities, and largely written off by his own family. When he unexpectedly became emperor after Caligula's assassination, he proved his detractors wrong. He reformed the imperial bureaucracy, presided personally over legal cases, built the harbour at Ostia, and conquered Britain. Ancient sources, written mostly by senatorial aristocrats who resented his reliance on freedmen administrators, tend to paint him as bumbling or manipulated. The reality is more interesting: a deeply learned man, shaped by years of enforced observation rather than action, who governed with procedural seriousness and got more done than most.
 
-He was not without political violence — he authorized executions, navigated treacherous court intrigue, and was no stranger to ruthlessness when he felt it necessary. But he thought before he acted. A fitting patron for an agent that runs in a box — this is that box.
+He was not without political violence. He authorized executions, navigated treacherous court intrigue, and was no stranger to ruthlessness when he felt it necessary. But he thought before he acted. A fitting patron for an agent that runs in a box — this is that box.
 
 ---
 
 
 ## Overview
 
-Claude Code in a hardened Docker container. Egress locked down via iptables and an Envoy sidecar with an explicit allowlist; capabilities dropped, PID namespace isolated, Docker access filtered through a socket proxy. Credentials, SSH/GPG agents, clipboard, MCP config, and skills pass through from the host unchanged — the full Claude Code experience preserved inside. Language servers and the Gemini MCP toolkit included; extensible via custom images or a runtime init hook.
-
-The sandbox protects the host. It does not protect your project files from the agent.
+As the story above suggests, claudius is built to contain risk without getting in the way. A hardened sandbox that lets Claude Code do its job while keeping the host safe. Locked down by default; network egress, Docker access, SSH, clipboard, and sudo are all opt-in risks you control. Language servers and Gemini MCP included out of the box; extensible via custom docker images or a runtime init hook. It protects the host from the agent. Your project files are another matter.
 
 ![Architecture](docs/architecture.svg)
 
