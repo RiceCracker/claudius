@@ -195,7 +195,9 @@ All outbound TCP — including to the Docker socket proxy — routes through Env
 
 #### CLAUDIUS_ALLOW
 
-All outbound TCP goes through an Envoy sidecar. Destinations not in the list get HTTP 403. UDP entries are resolved at startup and added to iptables directly. Protocol suffix is always required:
+All outbound TCP goes through an Envoy sidecar. The reason: iptables operates at the IP layer and can only filter by address — it has no concept of hostnames or wildcards like `*.anthropic.com`. Resolving domains to IPs at startup would be unreliable; CDN-backed services rotate through hundreds of addresses and the mapping changes constantly. Envoy operates at L7, where it can inspect the `CONNECT` target (for HTTPS) or the `Host` header (for HTTP) — the actual hostname, not the IP. iptables just redirects all outbound TCP to Envoy via DNAT; Envoy does the real filtering. Destinations not in the list get HTTP 403.
+
+UDP cannot be proxied this way, so UDP entries are resolved to IPs at startup and added to iptables directly — keep UDP entries narrow. Protocol suffix is always required:
 
 ```bash
 CLAUDIUS_ALLOW="
