@@ -64,6 +64,9 @@ RUN export PATH="$HOME/.local/bin:$PATH" && \
     chmod -R 755 /opt/npm
 
 # Starship prompt
+RUN pip3 install ruff --break-system-packages
+
+# Starship prompt
 RUN curl -sS https://starship.rs/install.sh | sh -s -- --yes
 
 # Shell config: PATH + starship
