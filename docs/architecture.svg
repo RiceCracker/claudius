@@ -23,8 +23,8 @@
      inkscape:deskcolor="#d1d1d1"
      showgrid="false"
      inkscape:zoom="0.97319587"
-     inkscape:cx="800.96928"
-     inkscape:cy="573.88242"
+     inkscape:cx="803.02437"
+     inkscape:cy="575.9375"
      inkscape:window-width="2494"
      inkscape:window-height="1371"
      inkscape:window-x="0"
@@ -312,14 +312,14 @@
      style="stroke:#8a7560;stroke-opacity:1" />
   <!-- ── Docker network ────────────────────────────────────────────────── -->
   <rect
-     x="13.952707"
-     y="233.95364"
-     width="1390.5945"
-     height="681.79395"
-     rx="8.58393"
+     x="13.873139"
+     y="233.87462"
+     width="1097.1544"
+     height="681.95245"
+     rx="6.7725711"
      fill="#e5ebe0"
      stroke="#4a6b8c"
-     stroke-width="1.4065"
+     stroke-width="1.24954"
      stroke-dasharray="8, 3"
      id="rect62" />
   <text
@@ -328,7 +328,7 @@
      font-size="11px"
      fill="#4a6b8c"
      font-weight="bold"
-     id="text64">docker network claudius-$$ (IPv4 + IPv6, fallback IPv4-only)</text>
+     id="text64">claudius containers</text>
   <!-- ── claudius container ────────────────────────────────────────────── -->
   <rect
      x="25.919361"
@@ -877,7 +877,7 @@
      id="text216">tecnativa/docker-socket-proxy</text>
   <!-- ── Internet ──────────────────────────────────────────────────────── -->
   <rect
-     x="1162.027"
+     x="1176.027"
      y="260.02783"
      width="228.04453"
      height="171.9445"
@@ -887,7 +887,7 @@
      stroke-width="1.55548"
      id="rect218" />
   <text
-     x="1268"
+     x="1282"
      y="282"
      text-anchor="middle"
      font-size="14px"
@@ -895,53 +895,53 @@
      fill="#3d2b1f"
      id="text220">Internet</text>
   <line
-     x1="1168"
+     x1="1182"
      y1="289"
-     x2="1368"
+     x2="1382"
      y2="289"
      stroke="#e8dfc8"
      stroke-width="0.8"
      id="line222" />
   <text
-     x="1176"
+     x="1190"
      y="308"
      font-size="11px"
      fill="#6b5b45"
      id="text224">*.anthropic.com:443</text>
   <text
-     x="1176"
+     x="1190"
      y="326"
      font-size="11px"
      fill="#8a7560"
      id="text226">+ CLAUDIUS_ALLOW</text>
   <text
-     x="1176"
+     x="1190"
      y="348"
      font-size="12px"
      font-weight="bold"
      fill="#8b2e18"
      id="text228">allowlisted only</text>
   <text
-     x="1176"
+     x="1190"
      y="366"
      font-size="10px"
      fill="#aa9980"
      id="text230">TCP: SNI/Host ACL (wildcards ok)</text>
   <text
-     x="1176"
+     x="1190"
      y="382"
      font-size="10px"
      fill="#aa9980"
      id="text232">UDP: IP-ACL · DNS via resolvers:53</text>
   <text
-     x="1176"
+     x="1190"
      y="398"
      font-size="10px"
      fill="#aa9980"
      id="text234">ICMP: IP-ACL via NFQUEUE</text>
   <!-- ── Host Docker ─────────────────────────────────────────────────── -->
   <rect
-     x="1162"
+     x="1176"
      y="664"
      width="212"
      height="120"
@@ -951,7 +951,7 @@
      stroke-width="1.5"
      id="rect236" />
   <text
-     x="1268"
+     x="1282"
      y="686"
      text-anchor="middle"
      font-size="14px"
@@ -959,34 +959,34 @@
      fill="#2a3d5c"
      id="text238">Host Docker</text>
   <text
-     x="1268"
+     x="1282"
      y="704"
      text-anchor="middle"
      font-size="11px"
      fill="#4a6b8c"
      id="text240">Daemon</text>
   <line
-     x1="1168"
+     x1="1182"
      y1="711"
-     x2="1368"
+     x2="1382"
      y2="711"
      stroke="#a0b5c8"
      stroke-width="0.8"
      id="line242" />
   <text
-     x="1176"
+     x="1190"
      y="730"
      font-size="11px"
      fill="#8a7560"
      id="text244">/var/run/docker.sock</text>
   <text
-     x="1176"
+     x="1190"
      y="748"
      font-size="11px"
      fill="#8a7560"
      id="text246">read-only proxied</text>
   <text
-     x="1176"
+     x="1190"
      y="766"
      font-size="11px"
      fill="#8a7560"
@@ -1044,16 +1044,16 @@
      id="text260">NFQUEUE</text>
   <!-- proxy &#8594; Internet: TCP relay -->
   <line
-     x1="1114"
+     x1="1132"
      y1="346"
-     x2="1140"
+     x2="1158"
      y2="346"
      stroke="#b5442a"
      stroke-width="1.8"
      marker-end="url(#arrR)"
      id="line262" />
   <text
-     x="1127"
+     x="1145"
      y="339"
      text-anchor="middle"
      font-size="9px"
@@ -1061,16 +1061,16 @@
      id="text264">TCP relay</text>
   <!-- proxy &#8594; Internet: UDP accept -->
   <line
-     x1="1114"
+     x1="1132"
      y1="374.02228"
-     x2="1140"
+     x2="1158"
      y2="374.02228"
      stroke="#c4882a"
      stroke-width="1.80003"
      marker-end="url(#arrO)"
      id="line266" />
   <text
-     x="1127"
+     x="1145"
      y="367"
      text-anchor="middle"
      font-size="9px"
@@ -1103,16 +1103,16 @@
      id="text274">API</text>
   <!-- Docker socket proxy &#8594; Host Docker -->
   <line
-     x1="1114"
+     x1="1128"
      y1="734"
-     x2="1140"
+     x2="1154"
      y2="734"
      stroke="#4a6b8c"
      stroke-width="1.8"
      marker-end="url(#arrB)"
      id="line276" />
   <text
-     x="1127"
+     x="1141"
      y="726"
      text-anchor="middle"
      font-size="9px"
