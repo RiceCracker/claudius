@@ -91,7 +91,7 @@ if [ "$GPG" = "1" ]; then
   fi
 fi
 if [ "$CLIPBOARD" = "1" ]; then
-  if [ -n "${WAYLAND_DISPLAY:-}" ] && [ -n "${XDG_RUNTIME_DIR:-}" ] && [ -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then
+  if [ -n "${WAYLAND_DISPLAY:-}" ] && [ -n "${XDG_RUNTIME_DIR:-}" ] && [ -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ] && [ "$RUNTIME" != "runsc" ]; then
     EXTRA_ARGS+=(
       -e "WAYLAND_DISPLAY=$WAYLAND_DISPLAY"
       -e "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR"
