@@ -63,7 +63,7 @@ RUN export PATH="$HOME/.local/bin:$PATH" && \
         sql-language-server && \
     chmod -R 755 /opt/npm
 
-# Starship prompt
+# Python tools
 RUN pip3 install ruff --break-system-packages
 
 # Starship prompt
@@ -80,12 +80,11 @@ RUN ssh-keyscan -t ed25519 github.com >> /etc/ssh/ssh_known_hosts
 
 WORKDIR /workspace
 
-COPY docker/claudius/init-firewall.sh /usr/local/bin/init-firewall.sh
-COPY docker/claudius/entrypoint.sh    /usr/local/bin/entrypoint.sh
+COPY docker/claudius/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN mkdir -p /etc/claude-code /etc/claudius
 COPY CLAUDE.md /etc/claude-code/CLAUDE.md
 RUN chmod 444 /etc/claude-code/CLAUDE.md && \
-    chmod +x /usr/local/bin/init-firewall.sh /usr/local/bin/entrypoint.sh && \
+    chmod +x /usr/local/bin/entrypoint.sh && \
     passwd -l root
 
 ENV TERM=xterm-256color
@@ -95,6 +94,5 @@ ENV COLORTERM=truecolor
 ENV DISABLE_AUTOUPDATER=1
 ENV NPM_CONFIG_PREFIX=/opt/npm
 ENV PATH=/opt/npm/bin:$PATH
-ENV NODE_OPTIONS=--use-env-proxy
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

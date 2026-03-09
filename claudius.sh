@@ -6,10 +6,12 @@ set -e
 
 CLAUDIUS_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 
-if [ -f "$CLAUDIUS_DIR/.env" ]; then
+_env_file="${CLAUDIUS_ENV_FILE:-$CLAUDIUS_DIR/.env}"
+if [ -f "$_env_file" ]; then
   # shellcheck source=/dev/null
-  . "$CLAUDIUS_DIR/.env"
+  . "$_env_file"
 fi
+unset _env_file
 
 CLAUDIUS_IMAGE="${CLAUDIUS_IMAGE:-claudius}"
 
@@ -38,30 +40,35 @@ PROXY="claudius-docker-$$"
 MEMORY="${CLAUDIUS_MEMORY:-4g}"
 CPUS="${CLAUDIUS_CPUS:-4}"
 DNS="${CLAUDIUS_DNS:-1.1.1.1 1.0.0.1 8.8.8.8 8.8.4.4}"
+DNS_ARGS=(); for resolver in $DNS; do DNS_ARGS+=(--dns "$resolver"); done
 DOCKER_WRITE="${CLAUDIUS_DOCKER_WRITE:-}"
 SSH="${CLAUDIUS_SSH:-0}"
 GPG="${CLAUDIUS_GPG:-}"
-# Anthropic API is always reachable – Claude Code requires it
-ALLOW="*.anthropic.com:443/tcp pypi.org:443/tcp files.pythonhosted.org:443/tcp ${CLAUDIUS_ALLOW:-}"
+# Anthropic API is always reachable – Claude Code requires it.
+# DNS resolvers are auto-added so the proxy can filter DNS (no firewall exemption needed).
+ALLOW="*.anthropic.com:443/tcp ${CLAUDIUS_ALLOW:-}"
+for resolver in $DNS; do ALLOW="$ALLOW $resolver:53/udp $resolver:53/tcp"; done
+[ "$SSH" = "1" ] && ALLOW="$ALLOW *:22/tcp"
 CLIPBOARD="${CLAUDIUS_CLIPBOARD:-1}"
 SUDO="${CLAUDIUS_SUDO:-0}"
 USER_INIT="${CLAUDIUS_USER_INIT:-}"
-ENVOY="claudius-proxy-$$"
-ENVOY_CONF_FILE=""
-ENVOY_IP=""
+RUNTIME="${CLAUDIUS_RUNTIME:-}"
+NO_PROXY="${CLAUDIUS_NO_PROXY:-0}"
+FWPROXY=""
+PROXY_LOG_PID=""
 
 XAUTH_FILE=""
 cleanup() {
+  [ -n "$PROXY_LOG_PID" ] && kill "$PROXY_LOG_PID" 2>/dev/null || true
+  docker stop "$FWPROXY" 2>/dev/null || true  # graceful: allows iptables cleanup trap
   docker rm -f "$PROXY" 2>/dev/null || true
-  docker rm -f "$ENVOY" 2>/dev/null || true
   docker network rm "$NET" 2>/dev/null || true
-  [ -n "$XAUTH_FILE" ] && rm -f "$XAUTH_FILE"
-  [ -n "$ENVOY_CONF_FILE" ] && rm -f "$ENVOY_CONF_FILE"; true
+  [ -n "$XAUTH_FILE" ] && rm -f "$XAUTH_FILE"; true
 }
 trap cleanup EXIT INT TERM
 
-# Isolated network so proxy and claudius can talk
-docker network create "$NET" >/dev/null
+# Isolated network so proxy and claudius can talk (try IPv6 first, fall back to IPv4-only)
+docker network create --ipv6 "$NET" >/dev/null 2>&1 || docker network create "$NET" >/dev/null
 
 # ── Docker socket proxy ────────────────────────────────────────────────────────
 # shellcheck source=docker/docker-socket-proxy/start.sh
@@ -69,7 +76,11 @@ docker network create "$NET" >/dev/null
 
 EXTRA_ARGS=()
 [ "$DOCKER_WRITE" = "1" ] && EXTRA_ARGS+=(-e "DOCKER_WRITE=1")
-[ -n "$ALLOW" ]        && EXTRA_ARGS+=(-e "CLAUDIUS_ALLOW=$ALLOW")
+# CLAUDIUS_ALLOW is consumed by the proxy sidecar only – not passed into the container.
+allow_count=$(printf '%s\n' ${ALLOW:-} | grep -cE '/tcp|/udp' || true)
+[ "$NO_PROXY" = "1" ] && allow_count="unrestricted"
+EXTRA_ARGS+=(-e "CLAUDIUS_ALLOW_COUNT=$allow_count")
+
 if [ "$SSH" = "1" ] && [ -n "${SSH_AUTH_SOCK:-}" ] && [ -S "$SSH_AUTH_SOCK" ]; then
   EXTRA_ARGS+=(-v "$SSH_AUTH_SOCK:$SSH_AUTH_SOCK" -e "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" -e "CLAUDIUS_SSH=1")
 fi
@@ -98,18 +109,11 @@ if [ "$CLIPBOARD" = "1" ]; then
   fi
 fi
 
-# ── Envoy proxy ────────────────────────────────────────────────────────────────
-# shellcheck source=docker/envoy/start.sh
-. "$CLAUDIUS_DIR/docker/envoy/start.sh"
-
-
-EXTRA_ARGS+=(
-  -e "http_proxy=http://$ENVOY_IP:3128"
-  -e "https_proxy=http://$ENVOY_IP:3128"
-  -e "HTTP_PROXY=http://$ENVOY_IP:3128"
-  -e "HTTPS_PROXY=http://$ENVOY_IP:3128"
-  -e "ENVOY_IP=$ENVOY_IP"
-)
+# ── Transparent proxy ─────────────────────────────────────────────────────────
+if [ "$NO_PROXY" != "1" ]; then
+  # shellcheck source=docker/proxy/start.sh
+  . "$CLAUDIUS_DIR/docker/proxy/start.sh"
+fi
 
 # ── user init hook ────────────────────────────────────────────────────────────
 if [ -n "$USER_INIT" ]; then
@@ -129,6 +133,7 @@ if [ "$SUDO" = "1" ]; then
   )
 fi
 
+[ -n "$RUNTIME" ] && EXTRA_ARGS+=(--runtime "$RUNTIME" -e "CLAUDIUS_RUNTIME=$RUNTIME")
 TTY_FLAG="-i"; [ -t 0 ] && [ -t 1 ] && TTY_FLAG="-it"
 # No --security-opt seccomp=...: Docker's default seccomp profile applies intentionally.
 # It blocks ~44 syscalls (kexec_load, create_module, AF_PACKET sockets, etc.).
@@ -142,10 +147,10 @@ docker run $TTY_FLAG --rm \
   --cap-add SETUID \
   --cap-add SETGID \
   --cap-add SETPCAP \
-  --cap-add NET_ADMIN \
   --cap-add NET_RAW \
   --hostname claudius \
   --network "$NET" \
+  "${DNS_ARGS[@]}" \
   --memory "$MEMORY" \
   --cpus "$CPUS" \
   --pids-limit 512 \

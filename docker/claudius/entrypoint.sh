@@ -2,21 +2,19 @@
 set -e
 
 # ── User setup ────────────────────────────────────────────────────────────────
-# HOST_UID/HOST_GID/HOST_USER kommen vom Launcher, damit Dateien
-# im gemounteten Projektordner dem richtigen User gehören.
+# HOST_UID/HOST_GID/HOST_USER are passed by the launcher so that files in the
+# mounted project directory are owned by the right user.
 
-# 1. Anderen User mit gleicher UID entfernen (verhindert mount-Konflikte)
+# Remove any existing user that already claims the same UID (avoids mount conflicts).
 conflicting="$(getent passwd "$HOST_UID" 2>/dev/null | cut -d: -f1 || true)"
 if [ -n "$conflicting" ] && [ "$conflicting" != "$HOST_USER" ]; then
   userdel "$conflicting" 2>/dev/null || true
 fi
 
-# 2. Gruppe anlegen
 if ! getent group "$HOST_GID" &>/dev/null; then
   groupadd -g "$HOST_GID" "$HOST_USER"
 fi
 
-# 3. User anlegen
 if ! id "$HOST_USER" &>/dev/null; then
   useradd -u "$HOST_UID" -g "$HOST_GID" -M -s /bin/bash "$HOST_USER"
 fi
@@ -48,6 +46,16 @@ if [ "${CLAUDIUS_SUDO:-0}" = "1" ]; then
   chmod 440 /etc/sudoers.d/claudius
 fi
 
+# ── DNS ───────────────────────────────────────────────────────────────────────
+# Docker's embedded resolver (127.0.0.11) can be unreliable. Write resolv.conf
+# directly from CLAUDIUS_DNS so the container always has working DNS.
+if [ -n "${CLAUDIUS_DNS:-}" ]; then
+  : > /etc/resolv.conf
+  for resolver in $CLAUDIUS_DNS; do
+    echo "nameserver $resolver" >> /etc/resolv.conf
+  done
+fi
+
 # ── Banner ────────────────────────────────────────────────────────────────────
 echo ""
 echo "╔══════════════════════════════╗"
@@ -58,35 +66,24 @@ echo ""
 echo "🪶 Imperial mandate: $HOST_USER"
 echo ""
 
-# ── Firewall ──────────────────────────────────────────────────────────────────
-echo "🔥 Firewall initializing..."
-if /usr/local/bin/init-firewall.sh; then
-  firewall_ok=1
+# ── Proxy status ──────────────────────────────────────────────────────────────
+if [ "${CLAUDIUS_ALLOW_COUNT:-0}" = "unrestricted" ]; then
+  echo "🌐 No proxy – unrestricted network access"
+elif [ "${CLAUDIUS_ALLOW_COUNT:-0}" -gt 0 ]; then
+  echo "🌍 Proxy active (${CLAUDIUS_ALLOW_COUNT} entries)"
 else
-  firewall_ok=0
-fi
-
-echo ""
-if [ "$firewall_ok" = "0" ]; then
-  echo "💀 Firewall failed – no network restrictions active"
-else
-  allow_count="$(printf '%s\n' ${CLAUDIUS_ALLOW:-} | grep -c '/tcp' 2>/dev/null || true)"
-  if [ "$allow_count" -gt 0 ]; then
-    echo "🌍 Envoy proxy active ($allow_count TCP entries)"
-  else
-    echo "🔒 TCP blocked – no entries in CLAUDIUS_ALLOW"
-  fi
+  echo "🔒 Network blocked – no entries in CLAUDIUS_ALLOW"
 fi
 echo ""
 
 # ── Hints ─────────────────────────────────────────────────────────────────────
-_any_hint=0
-[ -n "${SSH_AUTH_SOCK:-}" ] && { echo "🗝️ SSH agent forwarded"; _any_hint=1; }
-[ -n "${GPG_SOCK:-}" ] && { echo "⚜️ GPG agent forwarded"; _any_hint=1; }
-[ -n "${WAYLAND_DISPLAY:-}" ] && { echo "📜 Clipboard forwarded (Wayland)"; _any_hint=1; }
-[ -n "${DISPLAY:-}" ] && { echo "📜 Clipboard forwarded (X11)"; _any_hint=1; }
-[ "${CLAUDIUS_SUDO:-0}" = "1" ] && { echo "⚠️ sudo enabled (scope: ${CLAUDIUS_SUDO_CMDS:-apt apt-get pip pip3 npm})"; _any_hint=1; }
-[ "$_any_hint" = "1" ] && echo ""
+showed_hints=false
+[ -n "${SSH_AUTH_SOCK:-}" ] && { echo "🗝️ SSH agent forwarded"; showed_hints=true; }
+[ -n "${GPG_SOCK:-}" ] && { echo "⚜️ GPG agent forwarded"; showed_hints=true; }
+[ -n "${WAYLAND_DISPLAY:-}" ] && { echo "📜 Clipboard forwarded (Wayland)"; showed_hints=true; }
+[ -n "${DISPLAY:-}" ] && { echo "📜 Clipboard forwarded (X11)"; showed_hints=true; }
+[ "${CLAUDIUS_SUDO:-0}" = "1" ] && { echo "⚠️ sudo enabled (scope: ${CLAUDIUS_SUDO_CMDS:-apt apt-get pip pip3 npm})"; showed_hints=true; }
+[ "$showed_hints" = true ] && echo ""
 
 # ── User init hook ────────────────────────────────────────────────────────────
 # Mount a custom script at /etc/claudius/user-init.sh to run setup as root
@@ -112,12 +109,12 @@ echo "🐚 shell available after exiting claude"
 echo ""
 
 export PATH="/home/$HOST_USER/.local/bin:$PATH"
-# drop: Wechselt zum Host-User und entzieht NET_ADMIN (Firewall läuft noch als root).
-# Ohne sudo-Opt-in kommt --no-new-privs dazu – kein setuid mehr möglich.
+# Privilege drop: switch to the host user. Without sudo opt-in, --no-new-privs
+# prevents any further escalation via setuid binaries.
 if [ "${CLAUDIUS_SUDO:-0}" = "1" ]; then
-  drop="setpriv --bounding-set=-net_admin gosu $HOST_USER"
+  drop="gosu $HOST_USER"
 else
-  drop="setpriv --bounding-set=-net_admin gosu $HOST_USER setpriv --no-new-privs"
+  drop="gosu $HOST_USER setpriv --no-new-privs"
 fi
 
 if [ $# -eq 0 ]; then
