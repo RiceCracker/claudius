@@ -109,6 +109,15 @@ echo "🐚 shell available after exiting claude"
 echo ""
 
 export PATH="/home/$HOST_USER/.local/bin:$PATH"
+
+# ── Git init in home ───────────────────────────────────────────────────────────
+# Claude Code (>=2.1.31) hangs on startup in non-git directories on gVisor/9P
+# mounts. Source: https://github.com/anthropics/claude-code/issues/22049 
+# Fix: init a bare git repo in the container home so Claude finds .git
+# by traversing up from the project subdir – without touching the user's project.
+git init -q "/home/$HOST_USER"
+chown -R "$HOST_UID:$HOST_GID" "/home/$HOST_USER/.git"
+
 # Privilege drop: switch to the host user. Without sudo opt-in, --no-new-privs
 # prevents any further escalation via setuid binaries.
 if [ "${CLAUDIUS_SUDO:-0}" = "1" ]; then
@@ -118,8 +127,8 @@ else
 fi
 
 if [ $# -eq 0 ]; then
-  $drop claude || true
-  exec $drop bash
+  $drop bash -c "cd \"/home/$HOST_USER/$PROJECT_NAME\" && claude" || true
+  exec $drop bash -c "cd \"/home/$HOST_USER/$PROJECT_NAME\" && exec bash"
 else
   exec $drop "$@"
 fi

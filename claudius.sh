@@ -157,10 +157,11 @@ docker run $TTY_FLAG --rm \
   -v "$HOME/.claude:/home/$host_user/.claude" \
   -v "$HOME/.claude.json:/home/$host_user/.claude.json" \
   -v "$PROJECT_DIR:/home/$host_user/$project_name" \
-  -w "/home/$host_user/$project_name" \
+  -w "/home/$host_user" \
   -e HOST_UID="$(id -u)" \
   -e HOST_GID="$(id -g)" \
   -e HOST_USER="$host_user" \
+  -e PROJECT_NAME="$project_name" \
   -e DOCKER_HOST="tcp://$PROXY:2375" \
   -e CLAUDIUS_DNS="$DNS" \
   -e CLAUDIUS_FIREWALL_VERBOSE="${CLAUDIUS_FIREWALL_VERBOSE:-0}" \
