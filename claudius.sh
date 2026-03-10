@@ -34,7 +34,7 @@ else
 fi
 
 host_user="$(id -un)"
-project_name="$(basename "$PROJECT_DIR")"
+project_name="$(basename "$PROJECT_DIR" | tr ':' '-')"
 NET="claudius-$$"
 PROXY="claudius-docker-$$"
 MEMORY="${CLAUDIUS_MEMORY:-4g}"
@@ -59,8 +59,8 @@ PROXY_LOG_PID=""
 
 XAUTH_FILE=""
 cleanup() {
-  [ -n "$PROXY_LOG_PID" ] && kill "$PROXY_LOG_PID" 2>/dev/null || true
-  docker stop "$FWPROXY" 2>/dev/null || true  # graceful: allows iptables cleanup trap
+  docker stop "$FWPROXY" 2>/dev/null || true  # graceful: SIGTERM → iptables cleanup in proxy
+  [ -n "$PROXY_LOG_PID" ] && wait "$PROXY_LOG_PID" 2>/dev/null || true  # flush log before exit
   docker rm -f "$PROXY" 2>/dev/null || true
   docker network rm "$NET" 2>/dev/null || true
   [ -n "$XAUTH_FILE" ] && rm -f "$XAUTH_FILE"; true

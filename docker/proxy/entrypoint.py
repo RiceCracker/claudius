@@ -158,8 +158,8 @@ def resolve_ip_map(rules: list[tuple[str, int, str]]) -> dict[str, set[str]]:
             ips = {ai[4][0] for ai in socket.getaddrinfo(pattern, None)}
             if ips:
                 ip_map[pattern] = ips
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"{ts()} WARN resolve {pattern}: {type(e).__name__}: {e} – UDP rule ineffective", flush=True)
     return ip_map
 
 
