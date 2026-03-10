@@ -42,7 +42,7 @@ make uninstall  # remove the symlink
 
 **Optional: gVisor runtime**
 
-[gVisor](docs/gvisor.md) adds a user-space kernel between the container and the host — the strongest isolation available without a full VM. Works with SSH, GPG, and clipboard forwarding.
+[gVisor](https://gvisor.dev) adds a user-space kernel between the container and the host — the strongest isolation available without a full VM. Works with SSH, GPG, and clipboard forwarding.
 
 ```bash
 make gvisor-install   # install runsc, register with Docker, configure daemon
