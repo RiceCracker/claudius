@@ -115,7 +115,7 @@ export PATH="/home/$HOST_USER/.local/bin:$PATH"
 # mounts. Source: https://github.com/anthropics/claude-code/issues/22049 
 # Fix: init a bare git repo in the container home so Claude finds .git
 # by traversing up from the project subdir – without touching the user's project.
-git init -q "/home/$HOST_USER"
+git init -q -b main "/home/$HOST_USER"
 chown -R "$HOST_UID:$HOST_GID" "/home/$HOST_USER/.git"
 
 # Privilege drop: switch to the host user. Without sudo opt-in, --no-new-privs
