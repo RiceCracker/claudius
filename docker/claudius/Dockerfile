@@ -6,6 +6,7 @@ LABEL org.opencontainers.image.title="claude-box"
 LABEL org.opencontainers.image.description="Sandboxed Claude Code environment"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash-completion \
     git \
     curl \
     wget \
@@ -70,7 +71,7 @@ RUN pip3 install ruff --break-system-packages
 RUN curl -sS https://starship.rs/install.sh | sh -s -- --yes
 
 # Shell config: PATH + starship
-RUN printf '\n# claudius\nexport PATH="$HOME/.local/bin:$PATH"\neval "$(starship init bash)"\n' >> /root/.bashrc
+RUN printf '\n# claudius\nexport PATH="$HOME/.local/bin:$PATH"\n[ -f /usr/share/bash-completion/bash_completion ] && . /usr/share/bash-completion/bash_completion\neval "$(starship init bash)"\n' >> /root/.bashrc
 
 RUN mkdir -p /root/.config
 COPY docker/claudius/starship.toml /root/.config/starship.toml
