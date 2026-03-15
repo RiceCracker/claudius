@@ -134,6 +134,12 @@ if [ "$SUDO" = "1" ]; then
 fi
 
 [ -n "$RUNTIME" ] && EXTRA_ARGS+=(--runtime "$RUNTIME" -e "CLAUDIUS_RUNTIME=$RUNTIME")
+
+# Extra volumes: space-separated list of host:container[:options] specs
+for _vol in ${CLAUDIUS_EXTRA_VOLUMES:-}; do
+  EXTRA_ARGS+=(-v "$_vol")
+done
+unset _vol
 TTY_FLAG="-i"; [ -t 0 ] && [ -t 1 ] && TTY_FLAG="-it"
 # No --security-opt seccomp=...: Docker's default seccomp profile applies intentionally.
 # It blocks ~44 syscalls (kexec_load, create_module, AF_PACKET sockets, etc.).
