@@ -4,7 +4,10 @@
 
 set -e
 
-CLAUDIUS_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+_self="${BASH_SOURCE[0]:-$0}"
+[ -L "$_self" ] && _self="$(readlink "$_self")"
+CLAUDIUS_DIR="$(cd "$(dirname "$_self")" && pwd)"
+unset _self
 
 _env_file="${CLAUDIUS_ENV_FILE:-$CLAUDIUS_DIR/.env}"
 if [ -f "$_env_file" ]; then
