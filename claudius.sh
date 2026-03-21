@@ -171,7 +171,7 @@ docker run $TTY_FLAG --rm \
   -e HOST_GID="$(id -g)" \
   -e HOST_USER="$host_user" \
   -e PROJECT_NAME="$project_name" \
-  -e DOCKER_HOST="tcp://$PROXY:2375" \
+  -e DOCKER_HOST="tcp://$PROXY_IP:2375" \
   -e CLAUDIUS_DNS="$DNS" \
   -e CLAUDIUS_FIREWALL_VERBOSE="${CLAUDIUS_FIREWALL_VERBOSE:-0}" \
   -e TERM=xterm-256color \
