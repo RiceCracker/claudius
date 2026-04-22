@@ -1,12 +1,12 @@
 # claudius transparent proxy sidecar – sets up host-side iptables REDIRECT and
 # runs the filtering proxy. Sourced by claudius.sh.
-# Uses: ALLOW, CLAUDIUS_DIR, NET, SSH. Sets: FWPROXY, SUBNET, SUBNET6.
+# Uses: ALLOW, CLAUDIUS_DIR, NET. Sets: FWPROXY, SUBNET, SUBNET6, PROXY_LOG_PID.
 
 FWPROXY="claudius-proxy-$$"
-CHAIN="CLAUDIUS_$$"       # host PID – unique per session, passed into sidecar
-PROXY_PORT=$(( 20000 + ($$ % 40000) ))   # unique port per session (range 20000–59999)
+CHAIN="CLAUDIUS_$$"
+PROXY_PORT=$(( 20000 + ($$ % 40000) ))   # unique per session, range 20000–59999
 
-# Build image if missing
+# Build proxy image if missing
 if ! docker image inspect claudius-proxy &>/dev/null; then
   echo "📜 Image 'claudius-proxy' not found – building..."
   docker build -q -t claudius-proxy "$CLAUDIUS_DIR/docker/proxy" >/dev/null
@@ -15,19 +15,20 @@ fi
 # Derive bridge interface and subnets from the claudius Docker network.
 # Docker names bridges br-<first12 of network ID>.
 _net_id=$(docker network inspect "$NET" --format '{{.Id}}')
-BRIDGE_IF="br-${_net_id:0:12}"
 _subnets=$(docker network inspect "$NET" --format '{{range .IPAM.Config}}{{.Subnet}} {{end}}')
-SUBNET=$(for s in $_subnets; do echo "$s"; done | grep '\.' | head -1)
-SUBNET6=$(for s in $_subnets; do echo "$s"; done | grep ':' | head -1)
+BRIDGE_IF="br-${_net_id:0:12}"
+SUBNET=$(printf '%s\n' $_subnets | grep '\.' | head -1)
+SUBNET6=$(printf '%s\n' $_subnets | grep ':' | head -1)
+unset _net_id _subnets
 
 prune_stale_chains() {
   # Remove CLAUDIUS_* chains whose proxy container is no longer running.
-  local running_chains
-  running_chains=$(docker ps --filter name=claudius-proxy --format '{{.Names}}' \
+  local running
+  running=$(docker ps --filter name=claudius-proxy --format '{{.Names}}' \
     | sed 's/claudius-proxy-/CLAUDIUS_/')
   docker run --rm --cap-add NET_ADMIN --network host \
     -v "$CLAUDIUS_DIR/docker/proxy/prune-chains.sh:/prune-chains.sh:ro" \
-    -e "RUNNING_CHAINS=$running_chains" \
+    -e "RUNNING_CHAINS=$running" \
     claudius-proxy sh /prune-chains.sh 2>/dev/null || true
 }
 
@@ -48,14 +49,12 @@ start_proxy_sidecar() {
     claudius-proxy >/dev/null
 }
 
-check_proxy_health() {
-  local attempts=0
-  while [ $attempts -lt 15 ]; do
-    if nc -z 127.0.0.1 "$PROXY_PORT" 2>/dev/null; then
-      return 0
-    fi
+wait_for_proxy() {
+  local attempts=15
+  while [ $attempts -gt 0 ]; do
+    nc -z 127.0.0.1 "$PROXY_PORT" 2>/dev/null && return 0
     sleep 1
-    attempts=$((attempts + 1))
+    attempts=$((attempts - 1))
   done
   echo "❌ Proxy sidecar (TCP :$PROXY_PORT) not reachable. Aborting." >&2
   exit 1
@@ -63,10 +62,9 @@ check_proxy_health() {
 
 prune_stale_chains
 start_proxy_sidecar
-check_proxy_health
+wait_for_proxy
 
-# If CLAUDIUS_PROXY_LOG_FILE is set, follow proxy logs to a host file.
-# The follower PID is stored in PROXY_LOG_PID so cleanup() can kill it.
+# Optionally mirror proxy logs to a host file. PID saved so cleanup() can reap it.
 if [ -n "${CLAUDIUS_PROXY_LOG_FILE:-}" ]; then
   docker logs -f "$FWPROXY" >> "$CLAUDIUS_PROXY_LOG_FILE" 2>&1 &
   PROXY_LOG_PID=$!

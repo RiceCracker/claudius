@@ -36,9 +36,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tcpdump \
     tree \
     unzip \
-    wl-clipboard \
-    xclip \
     && rm -rf /var/lib/apt/lists/*
+# Note: xclip / wl-clipboard are intentionally NOT installed. The sandbox
+# replaces them with a shim (claudius-clip) that brokers clipboard access via
+# a Unix socket to a host-side bridge – no X11 socket exposure.
 
 COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/docker
 
@@ -82,11 +83,14 @@ RUN ssh-keyscan -t ed25519 github.com >> /etc/ssh/ssh_known_hosts
 WORKDIR /workspace
 
 COPY docker/claudius/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN mkdir -p /etc/claude-code /etc/claudius
-COPY CLAUDE.md /etc/claude-code/CLAUDE.md
-RUN chmod 444 /etc/claude-code/CLAUDE.md && \
-    chmod +x /usr/local/bin/entrypoint.sh && \
+COPY docker/clipboard/client.py    /usr/local/bin/claudius-clip
+RUN mkdir -p /etc/claude-code /etc/claudius /run/claudius && \
+    chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/claudius-clip && \
+    for n in xclip xsel wl-copy wl-paste pbcopy pbpaste; do \
+        ln -sf /usr/local/bin/claudius-clip "/usr/local/bin/$n"; \
+    done && \
     passwd -l root
+# CLAUDE.md is bind-mounted at runtime (claudius.sh) so edits don't require image rebuild.
 
 ENV TERM=xterm-256color
 ENV LANG=C.UTF-8

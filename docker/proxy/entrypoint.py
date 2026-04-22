@@ -41,25 +41,33 @@ QUEUE_NUM  = PROXY_PORT  # unique per session (PROXY_PORT is unique per host PID
 
 # ── iptables ──────────────────────────────────────────────────────────────────
 
+def _run_quiet(*argv: str) -> None:
+    """Run a subprocess, swallowing stdout/stderr and non-zero exit codes."""
+    subprocess.run(argv, check=False,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
 def _ipt(cmd: str, table: str):
     def run(*args: str) -> None:
-        subprocess.run([cmd, "-t", table, *args], check=False,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        _run_quiet(cmd, "-t", table, *args)
     return run
 
-ipt_nat      = _ipt("iptables",  "nat")
-ipt_mangle   = _ipt("iptables",  "mangle")
-ipt6_nat     = _ipt("ip6tables", "nat")
-ipt6_mangle  = _ipt("ip6tables", "mangle")
-ipt6_filter  = _ipt("ip6tables", "filter")
+
+ipt_nat     = _ipt("iptables",  "nat")
+ipt_mangle  = _ipt("iptables",  "mangle")
+ipt6_nat    = _ipt("ip6tables", "nat")
+ipt6_mangle = _ipt("ip6tables", "mangle")
+ipt6_filter = _ipt("ip6tables", "filter")
+
 
 def setup() -> NetfilterQueue:
-    subprocess.run(["modprobe", "br_netfilter"], check=False,
-                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    subprocess.run(["sysctl", "-w", "net.bridge.bridge-nf-call-iptables=1"],
-                   check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    subprocess.run(["sysctl", "-w", "net.bridge.bridge-nf-call-ip6tables=1"],
-                   check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    _run_quiet("modprobe", "br_netfilter")
+    _run_quiet("sysctl", "-w", "net.bridge.bridge-nf-call-iptables=1")
+    _run_quiet("sysctl", "-w", "net.bridge.bridge-nf-call-ip6tables=1")
+
+    # Purge any stale state from a prior crashed instance; cleanup() is idempotent
+    # (all ops go through _run_quiet, so missing chains fail silently).
+    cleanup()
 
     # IPv4 TCP: REDIRECT → proxy (SNI/Host ACL, proxy relays traffic)
     ipt_nat("-N", CHAIN)
@@ -155,7 +163,8 @@ def resolve_ip_map(rules: list[tuple[str, int, str]]) -> dict[str, set[str]]:
         except OSError:
             pass
         try:
-            ips = {ai[4][0] for ai in socket.getaddrinfo(pattern, None)}
+            # ai[4][0] is str for AF_INET/AF_INET6 sockaddr tuples; cast makes pyright happy
+            ips: set[str] = {str(ai[4][0]) for ai in socket.getaddrinfo(pattern, None)}
             if ips:
                 ip_map[pattern] = ips
         except Exception as e:

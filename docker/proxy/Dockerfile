@@ -15,6 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY entrypoint.py /entrypoint.py
-RUN chmod +x /entrypoint.py
+COPY supervisor.sh /supervisor.sh
+RUN chmod +x /entrypoint.py /supervisor.sh
 
-ENTRYPOINT ["python3", "/entrypoint.py"]
+# Supervisor restarts entrypoint.py on crash, forwards SIGTERM cleanly.
+ENTRYPOINT ["/supervisor.sh"]

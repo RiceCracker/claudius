@@ -19,7 +19,8 @@ claudius is built to contain risk without getting in the way. A hardened sandbox
 | Gemini MCP | [`@rlabs-inc/gemini-mcp`](https://github.com/RLabs-Inc/gemini-mcp) — 30+ tools: image/video generation, deep research, code execution, and more |
 | Language servers | `pyright` (Python), `typescript-language-server` (TS/JS), `bash-language-server`, `vscode-langservers-extracted` (JSON/HTML/CSS/Markdown), `yaml-language-server`, `sql-language-server` |
 | Shell | bash + [Starship](https://starship.rs) prompt |
-| Packages | git, curl, wget, vim, less, ping, mtr, jq, make, python3, pip3, sqlite3, sudo, tree, unzip, netcat, lsof, strace, tcpdump, ssh, docker CLI, gnupg, wl-clipboard, xclip |
+| Packages | git, curl, wget, vim, less, ping, mtr, jq, make, python3, pip3, sqlite3, sudo, tree, unzip, netcat, lsof, strace, tcpdump, ssh, docker CLI, gnupg |
+| Clipboard | socket-brokered bridge (claudius-clip shim aliased as xclip / wl-copy / wl-paste / pbcopy / pbpaste) — no X11 socket exposure |
 
 ---
 
@@ -48,26 +49,38 @@ make gvisor-uninstall # remove gVisor runtime
 make gvisor-check     # verify installation
 ```
 
-Then use it per-session with `CLAUDIUS_RUNTIME=runsc claudius ~/myproject`, or set it in `.env`.
+Then use it per-session with `CLAUDIUS_RUNTIME=runsc claudius run ~/myproject`, or set it in `.env`.
+
+**Recommended: rootless Docker**
+
+Running the Docker daemon in [rootless mode](https://docs.docker.com/engine/security/rootless/) reduces the blast radius of a sandbox escape: a break-out gives the attacker your user account, not host root. claudius works with rootless Docker out of the box.
+
+```bash
+make rootless-check   # verify your Docker is rootless
+```
 
 ---
 
 ## Usage
 
 ```bash
-claudius              # mount current directory, start claude
-claudius ~/my-project # mount a specific directory
-claudius bash         # shell only
+claudius run                    # mount current directory, start claude
+claudius run ~/my-project       # mount a specific directory
+claudius run bash               # shell only
+claudius run bash -c 'git log --oneline -5'
+```
+
+Other subcommands:
+
+```bash
+claudius doctor    # diagnose configuration (paths, image, runtime)
+claudius build     # build/rebuild images
+claudius prune     # clean up orphaned containers, networks, iptables chains
+claudius logs      # follow the running proxy's logs
+claudius help      # full usage
 ```
 
 Claude starts automatically. `/exit` or Ctrl+C drops you into a shell; exiting that closes the container.
-
-Non-interactive use works too:
-
-```bash
-claudius bash -c 'git log --oneline -5'
-claudius bash -c 'claude -p "summarize this repo in one paragraph"'
-```
 
 The project directory is mounted at `/home/$USER/<dirname>`. Files you create or edit show up on the host immediately — permissions are correct because the container runs as your UID/GID.
 
@@ -93,7 +106,9 @@ CLAUDIUS_MEMORY=8g CLAUDIUS_CPUS=8 claudius
 | Variable | Default | Description |
 | --- | --- | --- |
 | `CLAUDIUS_DNS` | `1.1.1.1 1.0.0.1 8.8.8.8 8.8.4.4` | DNS resolvers (space-separated; IPv6 supported) |
-| `CLAUDIUS_ALLOW` | unset | Allowed outbound destinations — see [docs/security.md#claudius_allow](docs/security.md#claudius_allow) |
+| `CLAUDIUS_ALLOW` | unset | Inline list of allowed outbound destinations — see [docs/security.md#claudius_allow](docs/security.md#claudius_allow) |
+| `CLAUDIUS_ALLOW_FILE` | unset | Path to an INI file with named profiles (see `allow.example.ini`) |
+| `CLAUDIUS_ALLOW_PROFILE` | `default` | Profile to merge on top of `[default]` (requires `CLAUDIUS_ALLOW_FILE`) |
 
 **Features**
 
@@ -102,7 +117,7 @@ CLAUDIUS_MEMORY=8g CLAUDIUS_CPUS=8 claudius
 | `CLAUDIUS_NO_PROXY` | `0` | `1` = skip proxy sidecar entirely — unrestricted outbound network |
 | `CLAUDIUS_SSH` | `0` | `1` = forward SSH agent and open `*:22/tcp` |
 | `CLAUDIUS_GPG` | `0` | `1` = forward GPG agent socket |
-| `CLAUDIUS_CLIPBOARD` | `1` | `0` = disable clipboard forwarding (Wayland/X11) |
+| `CLAUDIUS_CLIPBOARD` | `1` | `0` = disable clipboard bridge. Host needs `xclip+DISPLAY` or `wl-clipboard+WAYLAND_DISPLAY`. |
 | `CLAUDIUS_DOCKER_WRITE` | `0` | `1` = enable docker write ops (default: inspect only) |
 | `CLAUDIUS_SUDO` | `0` | `1` = enable sudo for package managers |
 | `CLAUDIUS_SUDO_CMDS` | `apt apt-get pip pip3 npm` | Commands allowed via sudo when `CLAUDIUS_SUDO=1` |

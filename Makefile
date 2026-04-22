@@ -1,7 +1,7 @@
 IMAGE  := claudius
 BINDIR := $(HOME)/.local/bin
 
-.PHONY: build rebuild install uninstall gvisor-install gvisor-configure gvisor-uninstall gvisor-check test-integration help
+.PHONY: build rebuild install uninstall gvisor-install gvisor-configure gvisor-uninstall gvisor-check rootless-check test-integration help
 
 help:
 	@echo "Usage:"
@@ -14,6 +14,7 @@ help:
 	@echo "  make gvisor-configure   – configure runsc daemon flags (no reinstall)"
 	@echo "  make gvisor-uninstall   – remove gVisor runtime"
 	@echo "  make gvisor-check       – verify gVisor installation"
+	@echo "  make rootless-check     – verify Docker is running rootless (recommended)"
 
 test-integration:
 	@bash tests/integration.sh
@@ -59,6 +60,21 @@ gvisor-uninstall:
 	           /etc/apt/sources.list.d/gvisor.list
 	sudo apt-get update
 	@echo "✓ gVisor removed"
+
+rootless-check:
+	@echo "── Docker daemon user ────────────────────────"
+	@docker info --format '{{.SecurityOptions}}' 2>/dev/null | grep -q 'rootless' \
+	  && echo "✓ Docker is running rootless" \
+	  || { echo "✗ Docker is NOT rootless"; \
+	       echo "  Host-root blast radius if the sandbox ever escapes."; \
+	       echo "  See: https://docs.docker.com/engine/security/rootless/"; \
+	       echo "  Install:  dockerd-rootless-setuptool.sh install"; \
+	       exit 1; }
+	@echo "── socket location ───────────────────────────"
+	@test -S "$${XDG_RUNTIME_DIR:-/run/user/$$(id -u)}/docker.sock" \
+	  && echo "✓ rootless socket at $${XDG_RUNTIME_DIR:-/run/user/$$(id -u)}/docker.sock" \
+	  || echo "⚠ rootless socket not found at expected path (check DOCKER_HOST)"
+	@echo "✓ rootless OK"
 
 gvisor-check:
 	@echo "── runsc binary ──────────────────────────────"
