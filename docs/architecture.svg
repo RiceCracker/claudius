@@ -565,7 +565,7 @@
      y="710"
      font-size="11px"
      fill="#a89880"
-     id="text122">opt: Wayland / X11 socket (CLAUDIUS_CLIPBOARD=1, default on)</text>
+     id="text122">opt: clipboard bridge socket (CLAUDIUS_CLIPBOARD=1, default on)</text>
   <text
      x="58"
      y="728"
@@ -618,7 +618,7 @@
      y="854"
      font-size="11px"
      fill="#8a7560"
-     id="text138">CLAUDE.md policy baked into image (highest precedence)</text>
+     id="text138">CLAUDE.md policy bind-mounted read-only (highest precedence)</text>
   <text
      x="58"
      y="872"

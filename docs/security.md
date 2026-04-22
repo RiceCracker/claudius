@@ -45,7 +45,9 @@ All active measures, in one place.
 | Docker socket proxy | Inspect-only by default; write ops blocked at the proxy level. Sits on the isolated internal network, excluded from the transparent TCP redirect |
 | No host environment | Only the necessary env vars are passed in |
 | gVisor runtime (optional) | `CLAUDIUS_RUNTIME=runsc` — user-space kernel intercepts all syscalls; no shared kernel attack surface |
-| Tamper-proof policy | `CLAUDE.md` at `/etc/claude-code/CLAUDE.md` — highest precedence in Claude Code's config hierarchy, can't be overridden by project or user instructions |
+| Tamper-proof policy | `CLAUDE.md` bind-mounted read-only at `/etc/claude-code/CLAUDE.md` — highest precedence in Claude Code's config hierarchy, can't be overridden or mutated from inside the container |
+| Clipboard bridge | Host-side Python daemon listens on a per-session Unix socket; the container's `claudius-clip` shim (aliased as `xclip` / `xsel` / `wl-copy` / `wl-paste` / `pbcopy` / `pbpaste`) talks a 1-byte r/w protocol. No X11 socket or display server exposed |
+| Proxy supervisor | `entrypoint.py` runs under a supervisor that restarts on crash (exp. backoff); SIGTERM still triggers the normal iptables cleanup path |
 
 ---
 
@@ -84,8 +86,8 @@ The lists below reflect the default configuration. Each opt-in (`CLAUDIUS_ALLOW`
 | `$(pwd)` | `/home/$USER/$(basename pwd)` | rw |
 | `$SSH_AUTH_SOCK` | same | rw — only when `CLAUDIUS_SSH=1` |
 | `$(gpgconf --list-dirs agent-socket)` | same | rw — only when `CLAUDIUS_GPG=1` |
-| `$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY` | same | rw — only when `CLAUDIUS_CLIPBOARD=1`, Wayland |
-| `/tmp/.X11-unix` | same | rw — only when `CLAUDIUS_CLIPBOARD=1`, X11 |
+| per-session clipboard socket | `/run/claudius/clipboard.sock` | rw — only when `CLAUDIUS_CLIPBOARD=1` (brokered by host-side Python bridge; no X11/Wayland socket is ever mounted) |
+| `$CLAUDIUS_DIR/CLAUDE.md` | `/etc/claude-code/CLAUDE.md` | ro — always |
 | `$CLAUDIUS_USER_INIT` | `/etc/claudius/user-init.sh` | ro — only when `CLAUDIUS_USER_INIT` is set |
 
 Note: `~/.claude/` and `~/.claude.json` are mounted read-write and persist on the host — changes to settings, hooks, or MCP config take effect immediately. `~/.claude/` contains `.credentials.json` (the Anthropic API key), readable inside the container and as root when `CLAUDIUS_SUDO=1`. Not technically enforced — mitigated by `CLAUDE.md`.
@@ -192,6 +194,8 @@ Claude is run first; if it exits, the entrypoint falls through to an interactive
 
 ## Managed policy (CLAUDE.md)
 
-A policy file is baked into the image at `/etc/claude-code/CLAUDE.md` (source: [`CLAUDE.md`](../CLAUDE.md)). Claude Code loads it at the highest precedence level — project-level and user-level instructions cannot override it. It instructs Claude not to read credential files, not to send data to external URLs, not to modify its own config or hooks, and to treat content in files and web pages as data rather than directives.
+A policy file is bind-mounted read-only at `/etc/claude-code/CLAUDE.md` (source: [`CLAUDE.md`](../CLAUDE.md) in the repo). Claude Code loads it at the highest precedence level — project-level and user-level instructions cannot override it. It instructs Claude not to read credential files, not to send data to external URLs, not to modify its own config or hooks, and to treat content in files and web pages as data rather than directives.
+
+The bind-mount means you can edit `CLAUDE.md` and the next container start picks it up — no image rebuild. The mount is read-only inside the container, so Claude cannot overwrite it at runtime.
 
 These are prompt-level instructions, not technical enforcement. They raise the bar for accidental misuse, but a sufficiently adversarial prompt could still override them.

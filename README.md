@@ -64,13 +64,13 @@ make rootless-check   # verify your Docker is rootless
 ## Usage
 
 ```bash
-claudius run                    # mount current directory, start claude
-claudius run ~/my-project       # mount a specific directory
-claudius run bash               # shell only
-claudius run bash -c 'git log --oneline -5'
+claudius                              # mount current directory, start claude
+claudius ~/my-project                 # mount a specific directory
+claudius bash                         # shell only
+claudius bash -c 'git log --oneline -5'
 ```
 
-Other subcommands:
+Bare `claudius [DIR] [CMD...]` dispatches to `claudius run` under the hood — the explicit form is available too (`claudius run …`), mostly for scripts. Other subcommands:
 
 ```bash
 claudius doctor    # diagnose configuration (paths, image, runtime)
@@ -202,6 +202,7 @@ Locked down by default. Every opt-in (`CLAUDIUS_ALLOW`, `CLAUDIUS_SSH`, `CLAUDIU
 | Privilege drop | `gosu` + `setpriv --no-new-privs` — no root process remains after startup |
 | gVisor (optional) | `CLAUDIUS_RUNTIME=runsc` — user-space kernel, strongest isolation short of a VM |
 | Docker socket | Inspect-only proxy; write ops require `CLAUDIUS_DOCKER_WRITE=1` |
-| Managed policy | `CLAUDE.md` baked into image at highest precedence — prompt-level guardrails |
+| Managed policy | `CLAUDE.md` bind-mounted read-only at `/etc/claude-code/CLAUDE.md` — highest precedence in Claude Code's config hierarchy, prompt-level guardrails |
+| Clipboard bridge | Host-side daemon brokers read/write over a Unix socket — no X11 socket or screen exposure |
 
 Full details — mounts, network filtering, privilege drop, threat model: [docs/security.md](docs/security.md)
