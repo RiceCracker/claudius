@@ -48,14 +48,15 @@ if [ "${CLAUDIUS_SUDO:-0}" = "1" ]; then
 fi
 
 # ── DNS ───────────────────────────────────────────────────────────────────────
-# Docker's embedded resolver (127.0.0.11) can be unreliable. Write resolv.conf
-# directly from CLAUDIUS_DNS so the container always has working DNS.
-if [ -n "${CLAUDIUS_DNS:-}" ]; then
-  : > /etc/resolv.conf
-  for resolver in $CLAUDIUS_DNS; do
-    echo "nameserver $resolver" >> /etc/resolv.conf
+# Write resolv.conf from CLAUDIUS_DNS. Always include 127.0.0.11 first so
+# Docker's embedded resolver works as fallback when external servers are
+# unreachable (e.g. network isolation, firewall rules on port 53).
+{
+  echo "nameserver 127.0.0.11"
+  for resolver in ${CLAUDIUS_DNS:-}; do
+    echo "nameserver $resolver"
   done
-fi
+} > /etc/resolv.conf
 
 # ── Banner ────────────────────────────────────────────────────────────────────
 echo
