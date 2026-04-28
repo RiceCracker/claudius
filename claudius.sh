@@ -31,11 +31,8 @@ SUDO="${CLAUDIUS_SUDO:-0}"
 SSH="${CLAUDIUS_SSH:-0}"
 GPG="${CLAUDIUS_GPG:-}"
 DOCKER_WRITE="${CLAUDIUS_DOCKER_WRITE:-}"
-NO_PROXY="${CLAUDIUS_NO_PROXY:-0}"
 RUNTIME="${CLAUDIUS_RUNTIME:-}"
 USER_INIT="${CLAUDIUS_USER_INIT:-}"
-ALLOW_FILE="${CLAUDIUS_ALLOW_FILE:-}"
-ALLOW_PROFILE="${CLAUDIUS_ALLOW_PROFILE:-default}"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 die()   { echo "❌ $*" >&2; exit 1; }
@@ -53,35 +50,18 @@ _have_clipboard_tool() {
   return 1
 }
 
-# Load ACL entries (space-separated) from CLAUDIUS_ALLOW_FILE if set, falling
-# back to CLAUDIUS_ALLOW. File format (INI-like):
-#   [default]
-#   *.anthropic.com:443/tcp
-#   registry.npmjs.org:443/tcp
-#
-#   [data-science]
-#   huggingface.co:443/tcp
-#
-# The [default] profile is always included; additional profile merged on top.
-load_allow_entries() {
-  if [ -z "$ALLOW_FILE" ]; then
-    printf '%s' "${CLAUDIUS_ALLOW:-}"
-    return
-  fi
-  [ -f "$ALLOW_FILE" ] || die "CLAUDIUS_ALLOW_FILE: file not found: $ALLOW_FILE"
-  awk -v want="$ALLOW_PROFILE" '
-    /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
-    /^\[.*\]/ {
-      gsub(/[][[:space:]]/, "")
-      section = $0
-      next
-    }
-    section == "default" || section == want {
-      sub(/#.*/, "")
-      gsub(/^[[:space:]]+|[[:space:]]+$/, "")
-      if ($0) print
-    }
-  ' "$ALLOW_FILE" | tr '\n' ' '
+_build_image() {
+  docker build -t "$CLAUDIUS_IMAGE" -f "$CLAUDIUS_DIR/docker/claudius/Dockerfile" "$CLAUDIUS_DIR"
+}
+
+# Append `-v sock:sock -e env_name=sock` (and optionally `-e sentinel=1`) to
+# EXTRA_ARGS, but only when the socket actually exists. Used for SSH and GPG.
+_forward_socket() {  # _forward_socket SOCK_PATH ENV_NAME [SENTINEL_NAME]
+  local sock="$1" env_name="$2" sentinel="${3:-}"
+  [ -n "$sock" ] && [ -S "$sock" ] || return 0
+  EXTRA_ARGS+=(-v "$sock:$sock" -e "$env_name=$sock")
+  [ -n "$sentinel" ] && EXTRA_ARGS+=(-e "$sentinel=1")
+  return 0
 }
 
 # ── Subcommands ───────────────────────────────────────────────────────────────
@@ -92,17 +72,15 @@ Usage: claudius [SUBCOMMAND] [ARGS...]
 
 Subcommands:
   run [DIR] [CMD...]    Launch the sandboxed shell (default if omitted)
-  build                 Build/rebuild the container images
-  prune                 Remove orphaned claudius containers, networks, iptables chains
+  build                 Build/rebuild the container image
+  prune                 Remove orphaned claudius containers and networks
   doctor                Check configuration sanity (paths, image, runtime)
-  logs                  Follow the running proxy's logs
   version               Print the claudius version
   help                  Show this help
 
 Environment:
   Configure via \$CLAUDIUS_DIR/.env or export variables manually.
   See .env.example for the full list. Key ones:
-    CLAUDIUS_ALLOW / CLAUDIUS_ALLOW_FILE / CLAUDIUS_ALLOW_PROFILE
     CLAUDIUS_SSH / CLAUDIUS_GPG / CLAUDIUS_CLIPBOARD
     CLAUDIUS_SUDO / CLAUDIUS_DOCKER_WRITE
     CLAUDIUS_RUNTIME (e.g. runsc for gVisor)
@@ -127,9 +105,8 @@ cmd_version() {
 }
 
 cmd_build() {
-  docker build -t "$CLAUDIUS_IMAGE" -f "$CLAUDIUS_DIR/docker/claudius/Dockerfile" "$CLAUDIUS_DIR"
-  docker build -t "$CLAUDIUS_IMAGE-proxy" -f "$CLAUDIUS_DIR/docker/proxy/Dockerfile" "$CLAUDIUS_DIR/docker/proxy"
-  ok "images built: $CLAUDIUS_IMAGE, $CLAUDIUS_IMAGE-proxy"
+  _build_image
+  ok "image built: $CLAUDIUS_IMAGE"
 }
 
 cmd_doctor() {
@@ -147,11 +124,6 @@ cmd_doctor() {
   else
     warn "image '$CLAUDIUS_IMAGE' not found – run 'claudius build'"
   fi
-  if docker image inspect "$CLAUDIUS_IMAGE-proxy" &>/dev/null; then
-    ok "proxy image present"
-  else
-    warn "proxy image not found – will be built on next run"
-  fi
 
   _check "~/.claude/ exists"      test -d "$HOME/.claude"
   _check "~/.claude.json exists"  test -f "$HOME/.claude.json"
@@ -161,17 +133,6 @@ cmd_doctor() {
       ok "CLAUDIUS_USER_INIT: $USER_INIT"
     else
       fail "CLAUDIUS_USER_INIT: file not found: $USER_INIT"
-      status=1
-    fi
-  fi
-
-  if [ -n "$ALLOW_FILE" ]; then
-    if [ -f "$ALLOW_FILE" ]; then
-      local n
-      n=$(load_allow_entries | wc -w)
-      ok "CLAUDIUS_ALLOW_FILE: $ALLOW_FILE (profile=$ALLOW_PROFILE, $n entries)"
-    else
-      fail "CLAUDIUS_ALLOW_FILE: file not found: $ALLOW_FILE"
       status=1
     fi
   fi
@@ -200,24 +161,6 @@ cmd_prune() {
     [ -z "$name" ] && continue
     docker network rm "$name" >/dev/null 2>&1 && echo "  removed $name"
   done
-
-  echo "→ iptables chains:"
-  if docker image inspect "$CLAUDIUS_IMAGE-proxy" &>/dev/null; then
-    docker run --rm --cap-add NET_ADMIN --network host \
-      -v "$CLAUDIUS_DIR/docker/proxy/prune-chains.sh:/prune-chains.sh:ro" \
-      -e "RUNNING_CHAINS=" \
-      "$CLAUDIUS_IMAGE-proxy" sh /prune-chains.sh 2>&1 | sed 's/^/  /' || true
-    echo "  done"
-  else
-    echo "  (proxy image missing, skipped)"
-  fi
-}
-
-cmd_logs() {
-  local proxy
-  proxy=$(docker ps --filter name=claudius-proxy- --format '{{.Names}}' | head -1)
-  [ -z "$proxy" ] && die "no running claudius-proxy container"
-  exec docker logs -f "$proxy"
 }
 
 # ── The main run flow ─────────────────────────────────────────────────────────
@@ -225,14 +168,10 @@ cmd_run() {
   # Session-scoped state (globals so the trap can see them)
   NET="claudius-$$"
   PROXY="claudius-docker-$$"
-  FWPROXY=""
-  PROXY_LOG_PID=""
   CLIP_PID=""
   CLIP_DIR=""
 
   cleanup() {
-    docker stop "$FWPROXY" 2>/dev/null || true  # graceful: SIGTERM → iptables cleanup in proxy
-    [ -n "$PROXY_LOG_PID" ] && wait "$PROXY_LOG_PID" 2>/dev/null || true
     docker rm -f "$PROXY" 2>/dev/null || true
     docker network rm "$NET" 2>/dev/null || true
     [ -n "$CLIP_PID" ] && kill "$CLIP_PID" 2>/dev/null || true
@@ -245,7 +184,7 @@ cmd_run() {
   if ! docker image inspect "$CLAUDIUS_IMAGE" &>/dev/null; then
     if [ "$CLAUDIUS_IMAGE" = "claudius" ]; then
       echo "📜 Image 'claudius' not found – building (this takes ~2 min once)..."
-      docker build -t claudius -f "$CLAUDIUS_DIR/docker/claudius/Dockerfile" "$CLAUDIUS_DIR"
+      _build_image
     else
       die "Image '$CLAUDIUS_IMAGE' not found. Build it first:
    docker build -t $CLAUDIUS_IMAGE -f /path/to/your/Dockerfile ."
@@ -263,17 +202,6 @@ cmd_run() {
   host_user="$(id -un)"
   project_name="$(basename "$PROJECT_DIR" | tr ':' '-')"
 
-  # Build ALLOW string from file or env
-  local allow_entries
-  allow_entries=$(load_allow_entries)
-  # Anthropic API is always reachable – Claude Code requires it.
-  # DNS resolvers are auto-added so the proxy can filter DNS (no firewall exemption needed).
-  ALLOW="*.anthropic.com:443/tcp $allow_entries"
-  for resolver in $DNS; do
-    ALLOW="$ALLOW $resolver:53/udp $resolver:53/tcp"
-  done
-  [ "$SSH" = "1" ] && ALLOW="$ALLOW *:22/tcp"
-
   # ── Assemble docker run arguments ───────────────────────────────────────────
   local DNS_ARGS=()
   for resolver in $DNS; do
@@ -284,36 +212,9 @@ cmd_run() {
 
   [ "$DOCKER_WRITE" = "1" ] && EXTRA_ARGS+=(-e "DOCKER_WRITE=1")
 
-  # CLAUDIUS_ALLOW itself is consumed by the proxy sidecar only – not passed in.
-  # The container gets just the count, for the welcome banner.
-  local allow_count
-  if [ "$NO_PROXY" = "1" ]; then
-    allow_count="unrestricted"
-  else
-    allow_count=$(printf '%s\n' ${ALLOW:-} | grep -cE '/tcp|/udp' || true)
-  fi
-  EXTRA_ARGS+=(-e "CLAUDIUS_ALLOW_COUNT=$allow_count")
-
-  # SSH agent forwarding
-  if [ "$SSH" = "1" ] && [ -n "${SSH_AUTH_SOCK:-}" ] && [ -S "$SSH_AUTH_SOCK" ]; then
-    EXTRA_ARGS+=(
-      -v "$SSH_AUTH_SOCK:$SSH_AUTH_SOCK"
-      -e "SSH_AUTH_SOCK=$SSH_AUTH_SOCK"
-      -e "CLAUDIUS_SSH=1"
-    )
-  fi
-
-  # GPG agent forwarding
-  if [ "$GPG" = "1" ]; then
-    local gpg_sock
-    gpg_sock="$(gpgconf --list-dirs agent-socket 2>/dev/null || true)"
-    if [ -n "$gpg_sock" ] && [ -S "$gpg_sock" ]; then
-      EXTRA_ARGS+=(
-        -v "$gpg_sock:$gpg_sock"
-        -e "GPG_SOCK=$gpg_sock"
-      )
-    fi
-  fi
+  # SSH + GPG agent forwarding (silently skipped if the socket isn't there)
+  [ "$SSH" = "1" ] && _forward_socket "${SSH_AUTH_SOCK:-}" SSH_AUTH_SOCK CLAUDIUS_SSH
+  [ "$GPG" = "1" ] && _forward_socket "$(gpgconf --list-dirs agent-socket 2>/dev/null || true)" GPG_SOCK
 
   # Clipboard forwarding via host-side bridge (no X11 socket exposure).
   # A Python daemon on the host speaks a tiny protocol over a Unix socket;
@@ -368,18 +269,14 @@ cmd_run() {
   done
 
   # ── Isolated network (try IPv6, fall back to IPv4-only) ─────────────────────
+  # The container reaches the docker-socket-proxy sidecar through this network;
+  # outbound internet flows out via the bridge to the host (no filtering).
   docker network create --ipv6 "$NET" >/dev/null 2>&1 \
     || docker network create "$NET" >/dev/null
 
   # ── Docker socket proxy ─────────────────────────────────────────────────────
   # shellcheck source=docker/docker-socket-proxy/start.sh
   . "$CLAUDIUS_DIR/docker/docker-socket-proxy/start.sh"
-
-  # ── Transparent network proxy ───────────────────────────────────────────────
-  if [ "$NO_PROXY" != "1" ]; then
-    # shellcheck source=docker/proxy/start.sh
-    . "$CLAUDIUS_DIR/docker/proxy/start.sh"
-  fi
 
   # ── Run the container ───────────────────────────────────────────────────────
   # Docker's default seccomp profile applies intentionally (blocks ~44 syscalls
@@ -415,7 +312,6 @@ cmd_run() {
     -e PROJECT_NAME="$project_name" \
     -e DOCKER_HOST="tcp://$PROXY_IP:2375" \
     -e CLAUDIUS_DNS="$DNS" \
-    -e CLAUDIUS_FIREWALL_VERBOSE="${CLAUDIUS_FIREWALL_VERBOSE:-0}" \
     -e TERM=xterm-256color \
     -e COLORTERM=truecolor \
     "${EXTRA_ARGS[@]}" \
@@ -432,7 +328,6 @@ case "${1-}" in
   doctor)               shift; cmd_doctor "$@" ;;
   build)                shift; cmd_build  "$@" ;;
   prune)                shift; cmd_prune  "$@" ;;
-  logs)                 shift; cmd_logs   "$@" ;;
   run)                  shift; cmd_run    "$@" ;;
   *)                    cmd_run           "$@" ;;
 esac

@@ -21,11 +21,9 @@ test-integration:
 
 build:
 	docker build -t $(IMAGE) -f docker/claudius/Dockerfile .
-	docker build -t $(IMAGE)-proxy -f docker/proxy/Dockerfile docker/proxy
 
 rebuild:
 	docker build --no-cache -t $(IMAGE) -f docker/claudius/Dockerfile .
-	docker build --no-cache -t $(IMAGE)-proxy -f docker/proxy/Dockerfile docker/proxy
 
 install:
 	@mkdir -p $(BINDIR)

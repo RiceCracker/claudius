@@ -67,14 +67,6 @@ echo
 echo "🪶 Imperial mandate: $HOST_USER"
 echo
 
-# Proxy status
-case "${CLAUDIUS_ALLOW_COUNT:-0}" in
-  unrestricted) echo "🌐 No proxy – unrestricted network access" ;;
-  0)            echo "🔒 Network blocked – no entries in CLAUDIUS_ALLOW" ;;
-  *)            echo "🌍 Proxy active (${CLAUDIUS_ALLOW_COUNT} entries)" ;;
-esac
-echo
-
 # Forwarding hints
 hints=()
 [ -n "${SSH_AUTH_SOCK:-}" ]            && hints+=("🗝️ SSH agent forwarded")

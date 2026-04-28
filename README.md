@@ -8,55 +8,57 @@ He was not without political violence. He authorized executions, navigated treac
 
 ## Overview
 
-claudius is built to contain risk without getting in the way. A hardened sandbox for your local dev workstation that lets Claude Code do its job while keeping the host safe. Locked down by default; network egress, Docker access, SSH, clipboard, and sudo are all opt-in risks you control. Language servers and Gemini MCP included out of the box; extensible via custom docker images or a runtime init hook.
+claudius runs Claude Code inside a hardened, throwaway Docker container so a misbehaving agent — yours, an injected prompt's, an LLM having a bad day's — can't trash your `~`, leak credentials, or `docker run` itself onto the host. Locked down at the container layer by default; SSH agent, GPG agent, clipboard, sudo, and Docker writes are individually opt-in.
 
-![Architecture](docs/architecture.svg)
+**What it is not:** a network-filtering tool. Outbound traffic flows through Docker's bridge unmodified. If you need egress filtering, do it at the host firewall, VPN, or DNS layer.
 
 | Component | Details |
 | --- | --- |
 | Base image | `node:22-bookworm-slim` |
 | Claude Code | native installer (`claude.ai/install.sh`) |
-| Gemini MCP | [`@rlabs-inc/gemini-mcp`](https://github.com/RLabs-Inc/gemini-mcp) — 30+ tools: image/video generation, deep research, code execution, and more |
-| Language servers | `pyright` (Python), `typescript-language-server` (TS/JS), `bash-language-server`, `vscode-langservers-extracted` (JSON/HTML/CSS/Markdown), `yaml-language-server`, `sql-language-server` |
+| Gemini MCP | [`@rlabs-inc/gemini-mcp`](https://github.com/RLabs-Inc/gemini-mcp) — 30+ tools (image/video gen, deep research, code execution, …) |
+| Language servers | `pyright`, `typescript-language-server`, `bash-language-server`, `vscode-langservers-extracted` (JSON/HTML/CSS/Markdown), `yaml-language-server`, `sql-language-server` |
 | Shell | bash + [Starship](https://starship.rs) prompt |
-| Packages | git, curl, wget, vim, less, ping, mtr, jq, make, python3, pip3, sqlite3, sudo, tree, unzip, netcat, lsof, strace, tcpdump, ssh, docker CLI, gnupg |
-| Clipboard | socket-brokered bridge (claudius-clip shim aliased as xclip / wl-copy / wl-paste / pbcopy / pbpaste) — no X11 socket exposure |
+| Tools | git, curl, wget, vim, less, ping, mtr, jq, make, python3, pip, sqlite3, sudo, tree, unzip, netcat, lsof, strace, tcpdump, ssh, docker CLI, gnupg |
+| Clipboard | socket-brokered bridge — `claudius-clip` aliased as `xclip` / `wl-copy` / `wl-paste` / `pbcopy` / `pbpaste`, no X11/Wayland socket exposed |
 
 ---
 
-## Setup
+## Quick start
 
 ```bash
-make install
+make install            # symlinks `claudius` into ~/.local/bin
+claudius doctor         # sanity-check: docker reachable, ~/.claude present, runtime OK
+claudius                # run Claude on the current directory (builds the image on first run, ~2 min)
+claudius ~/my-project   # …or on a different one
 ```
 
-Symlinks `claudius` into `~/.local/bin`. First run builds the image (~2 min once), after that it starts instantly.
+`/exit` or Ctrl+C drops you into a bash shell inside the container; exiting that closes everything.
+
+The project directory is mounted at `/home/$USER/<dirname>` and is writable on both sides — files appear on the host with correct UID/GID immediately. `~/.claude/` and `~/.claude.json` are also mounted, so authentication and Claude Code settings persist across runs.
 
 ```bash
-make build      # build image (cached)
-make rebuild    # rebuild without cache, updates Claude Code
-make uninstall  # remove the symlink
+make build              # rebuild image (cached)
+make rebuild            # rebuild without cache, picks up the latest Claude Code
+make uninstall          # remove the symlink
 ```
 
-**Optional: gVisor runtime**
+---
 
-[gVisor](https://gvisor.dev) adds a user-space kernel between the container and the host — the strongest isolation available without a full VM. Works with SSH, GPG, and clipboard forwarding.
+## Hardening (optional)
+
+**gVisor.** [gVisor](https://gvisor.dev) puts a user-space kernel between the container and the host — strongest isolation short of a full VM. Works with SSH, GPG, and clipboard forwarding. Linux only.
 
 ```bash
-make gvisor-install   # install runsc, register with Docker, configure daemon
-make gvisor-configure # update daemon flags only (no reinstall)
-make gvisor-uninstall # remove gVisor runtime
-make gvisor-check     # verify installation
+make gvisor-install     # install runsc, register with Docker, configure daemon
+make gvisor-check       # verify the install
+# then per-session:  CLAUDIUS_RUNTIME=runsc claudius   (or set in .env)
 ```
 
-Then use it per-session with `CLAUDIUS_RUNTIME=runsc claudius run ~/myproject`, or set it in `.env`.
-
-**Recommended: rootless Docker**
-
-Running the Docker daemon in [rootless mode](https://docs.docker.com/engine/security/rootless/) reduces the blast radius of a sandbox escape: a break-out gives the attacker your user account, not host root. claudius works with rootless Docker out of the box.
+**Rootless Docker.** [Rootless mode](https://docs.docker.com/engine/security/rootless/) means a container escape lands in your user account, not host root. claudius works rootless out of the box.
 
 ```bash
-make rootless-check   # verify your Docker is rootless
+make rootless-check     # verify your Docker daemon is rootless
 ```
 
 ---
@@ -64,106 +66,80 @@ make rootless-check   # verify your Docker is rootless
 ## Usage
 
 ```bash
-claudius                              # mount current directory, start claude
-claudius ~/my-project                 # mount a specific directory
-claudius bash                         # shell only
-claudius bash -c 'git log --oneline -5'
+claudius                                       # mount current directory, start claude
+claudius ~/my-project                          # mount a specific directory
+claudius bash                                  # shell only, no claude
+claudius bash -c 'git log --oneline -5'        # one-shot command, also non-interactive friendly
 ```
 
-Bare `claudius [DIR] [CMD...]` dispatches to `claudius run` under the hood — the explicit form is available too (`claudius run …`), mostly for scripts. Other subcommands:
+Bare `claudius [DIR] [CMD…]` dispatches to `claudius run` under the hood — the explicit form is available too (`claudius run …`), mostly for scripts.
 
 ```bash
 claudius doctor    # diagnose configuration (paths, image, runtime)
-claudius build     # build/rebuild images
-claudius prune     # clean up orphaned containers, networks, iptables chains
-claudius logs      # follow the running proxy's logs
+claudius build     # build/rebuild image
+claudius prune     # clean up orphaned containers and networks
 claudius help      # full usage
 ```
-
-Claude starts automatically. `/exit` or Ctrl+C drops you into a shell; exiting that closes the container.
-
-The project directory is mounted at `/home/$USER/<dirname>`. Files you create or edit show up on the host immediately — permissions are correct because the container runs as your UID/GID.
 
 ---
 
 ## Configuration
 
-Set variables in a `.env` file next to `claudius.sh` (see `.env.example`), or pass them inline:
+Set variables in a `.env` next to `claudius.sh` (see `.env.example`), or pass them inline:
 
 ```bash
 CLAUDIUS_MEMORY=8g CLAUDIUS_CPUS=8 claudius
 ```
 
-**Resources**
-
 | Variable | Default | Description |
 | --- | --- | --- |
 | `CLAUDIUS_MEMORY` | `4g` | Container memory limit |
 | `CLAUDIUS_CPUS` | `4` | Container CPU limit |
-
-**Network**
-
-| Variable | Default | Description |
-| --- | --- | --- |
 | `CLAUDIUS_DNS` | `1.1.1.1 1.0.0.1 8.8.8.8 8.8.4.4` | DNS resolvers (space-separated; IPv6 supported) |
-| `CLAUDIUS_ALLOW` | unset | Inline list of allowed outbound destinations — see [docs/security.md#claudius_allow](docs/security.md#claudius_allow) |
-| `CLAUDIUS_ALLOW_FILE` | unset | Path to an INI file with named profiles (see `allow.example.ini`) |
-| `CLAUDIUS_ALLOW_PROFILE` | `default` | Profile to merge on top of `[default]` (requires `CLAUDIUS_ALLOW_FILE`) |
+| `CLAUDIUS_SSH` | `0` | `1` = forward the host SSH agent into the container |
+| `CLAUDIUS_GPG` | `0` | `1` = forward the host GPG agent socket |
+| `CLAUDIUS_CLIPBOARD` | `1` | `0` = disable clipboard bridge. Host needs `xclip+DISPLAY` or `wl-clipboard+WAYLAND_DISPLAY` |
+| `CLAUDIUS_DOCKER_WRITE` | `0` | `1` = enable docker write ops; default is inspect-only |
+| `CLAUDIUS_SUDO` | `0` | `1` = allow `sudo` for the listed commands; lifts `--no-new-privs` |
+| `CLAUDIUS_SUDO_CMDS` | `apt apt-get pip pip3 npm` | Commands allowed via `sudo` when `CLAUDIUS_SUDO=1` |
+| `CLAUDIUS_RUNTIME` | unset | Docker runtime — set `runsc` for gVisor; default is `runc` |
+| `CLAUDIUS_IMAGE` | `claudius` | Docker image to run; point at a custom image to extend |
+| `CLAUDIUS_USER_INIT` | unset | Path to a host script — mounted read-only, run as root before Claude starts |
 
-**Features**
-
-| Variable | Default | Description |
-| --- | --- | --- |
-| `CLAUDIUS_NO_PROXY` | `0` | `1` = skip proxy sidecar entirely — unrestricted outbound network |
-| `CLAUDIUS_SSH` | `0` | `1` = forward SSH agent and open `*:22/tcp` |
-| `CLAUDIUS_GPG` | `0` | `1` = forward GPG agent socket |
-| `CLAUDIUS_CLIPBOARD` | `1` | `0` = disable clipboard bridge. Host needs `xclip+DISPLAY` or `wl-clipboard+WAYLAND_DISPLAY`. |
-| `CLAUDIUS_DOCKER_WRITE` | `0` | `1` = enable docker write ops (default: inspect only) |
-| `CLAUDIUS_SUDO` | `0` | `1` = enable sudo for package managers |
-| `CLAUDIUS_SUDO_CMDS` | `apt apt-get pip pip3 npm` | Commands allowed via sudo when `CLAUDIUS_SUDO=1` |
-| `CLAUDIUS_RUNTIME` | unset | Docker runtime: `runsc` (gVisor). Default uses runc. |
+> **Outbound network is unrestricted.** There is no allow-list, no proxy, no SNI inspection. If you need filtering, layer it on the host (firewall, VPN, DNS sinkhole) — claudius does not.
 
 ---
 
 ## Extending
 
-The base image is intentionally minimal. Two ways to add your own tools:
+The base image is intentionally minimal. Two ways to add tools:
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `CLAUDIUS_IMAGE` | `claudius` | Docker image to run — set to a custom image name to use an extended image |
-| `CLAUDIUS_USER_INIT` | unset | Path to a shell script on the host — mounted read-only and run as root before Claude starts |
+### Custom image (recommended for tooling)
 
-### Custom image (recommended)
-
-Create a `Dockerfile` that extends `claudius`, build it once, and point `CLAUDIUS_IMAGE` at it:
+Extend the image with `FROM claudius`, build once, point `CLAUDIUS_IMAGE` at it:
 
 ```bash
 docker build -t claudius-go -f docker/claudius/Dockerfile.go.example .
 CLAUDIUS_IMAGE=claudius-go claudius ~/my-go-project
 ```
 
-Ready-made examples in `docker/claudius/`:
+Ready-made templates in `docker/claudius/`:
 
 | File | Adds |
 | --- | --- |
 | `Dockerfile.go.example` | Go 1.24 (multi-stage) + `gopls` |
-| `Dockerfile.flutter.example` | Flutter SDK (includes Dart + language server) + Android SDK + `flutter analyze/build apk/linux/web` |
+| `Dockerfile.flutter.example` | Flutter SDK + Dart language server + Android SDK |
 | `Dockerfile.rust.example` | Rust stable + `rust-analyzer` |
-
-All examples follow the same pattern — copy the file, adjust as needed, build once:
 
 ```dockerfile
 FROM claudius
-
 # add your tools here
-
 ENV PATH="/your/tool/bin:${PATH}"
 ```
 
-### Runtime init hook
+### Runtime init hook (recommended for per-session config)
 
-Mount a shell script at `/etc/claudius/user-init.sh`. It runs as root before Claude starts — useful for lightweight per-start config like git identity or aliases. Not for installing packages (use a custom image for that).
+Mount a host script at `/etc/claudius/user-init.sh`. It runs as root before the privilege drop — useful for git identity or shell aliases. Don't install packages here; use a custom image for that.
 
 ```bash
 # user-init.sh
@@ -172,13 +148,13 @@ git config --file "/home/${HOST_USER}/.gitconfig" user.name "My Name"
 echo "alias ll='ls -lah'" >> "/home/${HOST_USER}/.bashrc"
 ```
 
-To export env vars or PATH additions to Claude, write to `/etc/claudius/user-env.sh` — the entrypoint sources it before the privilege drop:
+Need env vars or PATH additions visible to Claude? Write them to `/etc/claudius/user-env.sh` from your init script — the entrypoint sources it before the privilege drop:
 
 ```bash
 echo 'export MY_TOKEN=xyz' >> /etc/claudius/user-env.sh
 ```
 
-Pass it via `CLAUDIUS_USER_INIT`:
+Wire it up:
 
 ```bash
 CLAUDIUS_USER_INIT=./user-init.sh claudius ~/my-project
@@ -186,23 +162,26 @@ CLAUDIUS_USER_INIT=./user-init.sh claudius ~/my-project
 # CLAUDIUS_USER_INIT=/home/you/dotfiles/claudius-init.sh
 ```
 
-A template is at `user-init.sh.example`.
+A template lives at `user-init.sh.example`.
 
 ---
 
 ## Security
 
-Locked down by default. Every opt-in (`CLAUDIUS_ALLOW`, `CLAUDIUS_SSH`, `CLAUDIUS_SUDO`, etc.) expands the attack surface in a specific, documented direction. claudius protects the host from the agent — your project files and prompting are another matter.
+claudius protects the host from the agent. Your project files and your prompting are a different problem.
 
 | Measure | Detail |
 | --- | --- |
-| Isolated filesystem | Project dir, `~/.claude/`, `~/.claude.json` — no other host paths |
-| Network firewall proxy (optional) | All TCP transparently proxied (SNI/Host ACL); UDP/ICMP via NFQUEUE (fail-closed); host-side enforcement, works with runc and gVisor |
-| Capability drop | `--cap-drop ALL` + minimal additions; `sudo` inert by default |
-| Privilege drop | `gosu` + `setpriv --no-new-privs` — no root process remains after startup |
+| Mount whitelist | Only the project dir, `~/.claude/`, `~/.claude.json` (and the optional sockets when their feature is on) |
+| Capability drop | `--cap-drop ALL` + a minimal set re-added; capabilities stay bounded even with `CLAUDIUS_SUDO=1` |
+| Privilege drop | `gosu` + `setpriv --no-new-privs` — no root parent process, setuid escalation blocked unless `CLAUDIUS_SUDO=1` |
 | gVisor (optional) | `CLAUDIUS_RUNTIME=runsc` — user-space kernel, strongest isolation short of a VM |
-| Docker socket | Inspect-only proxy; write ops require `CLAUDIUS_DOCKER_WRITE=1` |
-| Managed policy | `CLAUDE.md` bind-mounted read-only at `/etc/claude-code/CLAUDE.md` — highest precedence in Claude Code's config hierarchy, prompt-level guardrails |
-| Clipboard bridge | Host-side daemon brokers read/write over a Unix socket — no X11 socket or screen exposure |
+| Docker socket | Read-only Tecnativa proxy on a per-session network; raw socket is never bind-mounted; writes opt-in via `CLAUDIUS_DOCKER_WRITE=1` |
+| Managed policy | `CLAUDE.md` bind-mounted read-only at `/etc/claude-code/CLAUDE.md` — highest-precedence Claude Code config; prompt-level guardrails |
+| Clipboard bridge | Per-session Unix-socket daemon brokers reads/writes; the host display server (X11/Wayland) is never exposed |
 
-Full details — mounts, network filtering, privilege drop, threat model: [docs/security.md](docs/security.md)
+Each opt-in (`CLAUDIUS_SSH`, `CLAUDIUS_GPG`, `CLAUDIUS_SUDO`, `CLAUDIUS_DOCKER_WRITE`) expands the attack surface in a documented direction. `CLAUDIUS_DOCKER_WRITE=1` plus `CLAUDIUS_SUDO=1` is effectively host root — combine deliberately.
+
+Outbound network is **not** filtered. See the configuration note above.
+
+Full details — mounts, privilege drop, threat model: [docs/security.md](docs/security.md).
